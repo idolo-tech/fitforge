@@ -23,7 +23,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 }
 
-export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onReplayOnboarding: () => void }) {
+export function ProfileScreen({ name, onReplayOnboarding, desktop = false }: { name: string; onReplayOnboarding: () => void; desktop?: boolean }) {
   const { user, measurements, bodyWeight } = FF;
   const [selZone, setSelZone] = React.useState('shoulders');
   const [units, setUnits] = React.useState('kg / cm');
@@ -34,8 +34,9 @@ export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onRe
   const ANGLES = ['Face', 'Profil G', 'Profil D', 'Dos'];
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: 110 }}>
-      <header style={{ padding: '26px 20px 0', display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
+     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '14px 32px 48px' } : undefined}>
+      <header style={{ padding: desktop ? '6px 0 0' : '26px 20px 0', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div className="ff-display" style={{ width: 62, height: 62, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-2)', border: '1px solid var(--line)', fontSize: 20, fontWeight: 700, color: 'var(--accent)', boxShadow: '0 0 calc(20px * var(--glow)) rgba(0,240,255,0.18)' }}>
           {name.slice(0, 2).toUpperCase()}
         </div>
@@ -46,7 +47,7 @@ export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onRe
       </header>
 
       {/* photos de progression */}
-      <section style={{ margin: '24px 20px 0' }}>
+      <section style={{ margin: desktop ? '24px 0 0' : '24px 20px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <span className="ff-label">Photos de progression</span>
           <button className="pressable" aria-label="Prendre une photo" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10, border: '1px solid var(--line)', color: 'var(--accent)', fontSize: 11.5, fontWeight: 600 }}>
@@ -66,8 +67,9 @@ export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onRe
         <p style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 8 }}>Mois 1 · glisse pour comparer avant/après une fois 2 séries capturées.</p>
       </section>
 
+     <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' } : undefined}>
       {/* mensurations */}
-      <section className="ff-card" style={{ margin: '20px 20px 0', padding: 18 }}>
+      <section className="ff-card" style={{ margin: desktop ? 0 : '20px 20px 0', padding: 18 }}>
         <div className="ff-label" style={{ marginBottom: 14 }}>Mensurations · cm</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {measurements.map((m) => (
@@ -96,7 +98,7 @@ export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onRe
       </section>
 
       {/* poids corporel */}
-      <section className="ff-card" style={{ margin: '14px 20px 0', padding: 18, display: 'flex', alignItems: 'center', gap: 20 }}>
+      <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18, display: 'flex', alignItems: 'center', gap: 20 }}>
         <div>
           <div className="ff-label">Poids corporel</div>
           <div className="ff-mono" style={{ fontSize: 34, fontWeight: 700, marginTop: 6 }}>{user.weight}<span style={{ fontSize: 14, color: 'var(--txt-1)' }}> kg</span></div>
@@ -107,8 +109,10 @@ export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onRe
         </div>
       </section>
 
+     </div>
+
       {/* paramètres */}
-      <section className="ff-card" style={{ margin: '14px 20px 0', padding: '6px 18px' }}>
+      <section className="ff-card" style={{ margin: desktop ? '14px 0 0' : '14px 20px 0', padding: '6px 18px' }}>
         {[
           { label: 'Unités', control: <Segmented options={['kg / cm', 'lbs / in']} value={units} onChange={setUnits} style={{ width: 170 }} /> },
           { label: 'Rappels (séance, protéines, sommeil)', control: <Toggle value={notifs} onChange={setNotifs} /> },
@@ -129,11 +133,12 @@ export function ProfileScreen({ name, onReplayOnboarding }: { name: string; onRe
         </div>
       </section>
 
-      <div style={{ margin: '18px 20px 0' }}>
+      <div style={{ margin: desktop ? '18px 0 0' : '18px 20px 0', maxWidth: desktop ? 360 : undefined }}>
         <button className="pressable" onClick={onReplayOnboarding} style={{ width: '100%', padding: '15px', borderRadius: 14, border: '1px solid var(--line)', color: 'var(--txt-1)', fontSize: 13.5, fontWeight: 600, background: 'var(--bg-1)' }}>
           ↻ Revoir le splash & l’onboarding
         </button>
       </div>
+     </div>
     </div>
   );
 }

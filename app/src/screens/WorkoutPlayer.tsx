@@ -78,10 +78,12 @@ function ValidateControl({ gesture, onValidate }: { gesture: string; onValidate:
 interface WorkoutPlayerProps {
   gesture: string;
   timerDesign: string;
+  desktop?: boolean;
   onFinish: (s: SessionSummary) => void;
   onQuit: () => void;
 }
-export function WorkoutPlayer({ gesture, timerDesign, onFinish, onQuit }: WorkoutPlayerProps) {
+export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish, onQuit }: WorkoutPlayerProps) {
+  const pane = desktop ? { width: '100%', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' } : undefined;
   const day = FF.todayDay!;
   const exercises = day.exercises;
 
@@ -173,7 +175,7 @@ export function WorkoutPlayer({ gesture, timerDesign, onFinish, onQuit }: Workou
   const rirColor = (r: number) => (r <= 0 ? '#FF9F43' : r <= 2 ? '#39FF14' : '#4A4A4A');
 
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: 'var(--bg-0)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: 'var(--bg-0)', display: 'flex', flexDirection: 'column', alignItems: desktop ? 'center' : undefined, overflow: 'hidden' }}
       onClick={() => !chromeVisible && setChromeVisible(true)}>
 
       {/* progress bar 1px */}
@@ -185,7 +187,7 @@ export function WorkoutPlayer({ gesture, timerDesign, onFinish, onQuit }: Workou
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px 8px',
         opacity: chromeVisible ? 1 : 0, transition: 'opacity var(--dur-med) ease', zIndex: 5,
-        pointerEvents: chromeVisible ? 'auto' : 'none',
+        pointerEvents: chromeVisible ? 'auto' : 'none', ...pane,
       }}>
         <button className="pressable" onClick={onQuit} aria-label="Quitter la séance"
           style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-1)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt-1)' }}>
@@ -202,7 +204,7 @@ export function WorkoutPlayer({ gesture, timerDesign, onFinish, onQuit }: Workou
 
       {/* séries complétées (mini-liste) */}
       {logs.length > 0 && (
-        <div style={{ padding: '0 18px', zIndex: 5 }}>
+        <div style={{ padding: '0 18px', zIndex: 5, ...pane }}>
           <button onClick={() => setLogsOpen(!logsOpen)} className="ff-label" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', color: 'var(--txt-2)' }}>
             {logs.length} série{logs.length > 1 ? 's' : ''} validée{logs.length > 1 ? 's' : ''}
             <FFIcon name="chevronD" size={12} style={{ transform: logsOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur-fast)' }} />
@@ -220,7 +222,7 @@ export function WorkoutPlayer({ gesture, timerDesign, onFinish, onQuit }: Workou
       )}
 
       {/* zone exercice */}
-      <div key={exIdx} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', animation: 'ff-slide-ex var(--dur-med) cubic-bezier(0.22,1,0.36,1) both' }}>
+      <div key={exIdx} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', animation: 'ff-slide-ex var(--dur-med) cubic-bezier(0.22,1,0.36,1) both', ...pane }}>
         <ExercisePlaceholder label={`démo — ${ex.name.toLowerCase()}`} height="100%" style={{ position: 'absolute', inset: 0 }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.35) 35%, rgba(5,5,5,0.96) 75%)' }}></div>
 
@@ -238,7 +240,7 @@ export function WorkoutPlayer({ gesture, timerDesign, onFinish, onQuit }: Workou
       </div>
 
       {/* zone thumb : inputs + validation */}
-      <div style={{ padding: '14px 20px calc(20px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 16, background: 'var(--bg-0)', borderTop: '1px solid var(--line)' }}>
+      <div style={{ padding: '14px 20px calc(20px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 16, background: 'var(--bg-0)', borderTop: '1px solid var(--line)', ...pane }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {isWeighted && (
             <>

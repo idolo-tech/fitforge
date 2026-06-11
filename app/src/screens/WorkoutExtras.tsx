@@ -110,16 +110,17 @@ export function IntensityChart({ samples }: { samples: number[] }) {
 // ---------- récap post-séance ----------
 interface SummaryScreenProps {
   session: SessionSummary;
+  desktop?: boolean;
   onShare: () => void;
   onHome: () => void;
 }
-export function SummaryScreen({ session, onShare, onHome }: SummaryScreenProps) {
+export function SummaryScreen({ session, desktop = false, onShare, onHome }: SummaryScreenProps) {
   const vol = useCountUp(session.volume, 1100);
   const kcal = useCountUp(session.kcal, 1100);
   return (
     <div className="anim-fade-up" style={{ position: 'absolute', inset: 0, zIndex: 45, background: 'var(--bg-0)', overflowY: 'auto' }}>
       <Confetti count={30} />
-      <div style={{ padding: '40px 24px 30px', display: 'flex', flexDirection: 'column', gap: 26 }}>
+      <div style={{ padding: '40px 24px 30px', display: 'flex', flexDirection: 'column', gap: 26, width: '100%', maxWidth: desktop ? 600 : undefined, marginLeft: 'auto', marginRight: 'auto' }}>
         <header style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ margin: '0 auto', width: 58, height: 58, borderRadius: '50%', background: 'rgba(57,255,20,0.1)', border: '1.5px solid var(--accent-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 calc(26px * var(--glow)) rgba(57,255,20,0.3)' }}>
             <FFIcon name="check" size={26} color="var(--accent-3)" strokeWidth={2.4} />

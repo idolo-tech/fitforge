@@ -1,8 +1,9 @@
-/* FitForge — shell applicatif + navigation + Tweaks */
+/* FitForge — shell applicatif + navigation responsive + Tweaks */
 import React from 'react';
 import { FFIcon } from './components/icons';
 import type { IconName } from './components/icons';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSlider } from './components/TweaksPanel';
+import { useIsDesktop } from './hooks/useMediaQuery';
 import { SplashScreen, OnboardingScreen } from './screens/Onboarding';
 import { DashboardScreen } from './screens/Dashboard';
 import { ProgramScreen } from './screens/Program';
@@ -22,21 +23,24 @@ const FF_TWEAK_DEFAULTS = {
 
 type Tab = 'dashboard' | 'program' | 'journal' | 'profile';
 
+const NAV_ITEMS: { id: Tab; icon: IconName; label: string }[] = [
+  { id: 'dashboard', icon: 'home', label: 'Dashboard' },
+  { id: 'program', icon: 'program', label: 'Programme' },
+  { id: 'journal', icon: 'journal', label: 'Journal' },
+  { id: 'profile', icon: 'profile', label: 'Profil' },
+];
+
+/* mobile : barre flottante en bas */
 function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
-  const items: { id: Tab; icon: IconName; label: string }[] = [
-    { id: 'dashboard', icon: 'home', label: 'Dashboard' },
-    { id: 'program', icon: 'program', label: 'Programme' },
-    { id: 'journal', icon: 'journal', label: 'Journal' },
-    { id: 'profile', icon: 'profile', label: 'Profil' },
-  ];
   return (
     <nav aria-label="Navigation principale" style={{
       position: 'absolute', left: 16, right: 16, bottom: 'calc(14px + env(safe-area-inset-bottom))',
       display: 'flex', justifyContent: 'space-around', alignItems: 'center',
       background: 'var(--glass)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
       border: '1px solid var(--line)', borderRadius: 20, padding: '6px 8px', zIndex: 20,
+      maxWidth: 520, margin: '0 auto',
     }}>
-      {items.map((it) => {
+      {NAV_ITEMS.map((it) => {
         const active = tab === it.id;
         return (
           <button key={it.id} className="pressable" onClick={() => onChange(it.id)} aria-label={it.label}
@@ -53,8 +57,38 @@ function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
   );
 }
 
+/* desktop : barre horizontale en haut, brand + onglets */
+function TopNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+  return (
+    <nav className="ff-topnav" aria-label="Navigation principale">
+      <div className="ff-display" style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.08em', marginRight: 12 }}>
+        FIT<span style={{ color: 'var(--accent)' }}>FORGE</span>
+      </div>
+      <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+        {NAV_ITEMS.map((it) => {
+          const active = tab === it.id;
+          return (
+            <button key={it.id} className="pressable" onClick={() => onChange(it.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 9, padding: '9px 16px', borderRadius: 12,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, letterSpacing: '0.02em',
+                background: active ? 'rgba(0,240,255,0.08)' : 'transparent',
+                color: active ? 'var(--accent)' : 'var(--txt-1)',
+                boxShadow: active ? '0 0 calc(16px * var(--glow)) rgba(0,240,255,0.12)' : 'none',
+              }}>
+              <FFIcon name={it.icon} size={18} color={active ? 'var(--accent)' : 'var(--txt-2)'} strokeWidth={active ? 2 : 1.6} />
+              {it.label}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 export default function FitForgeApp() {
   const [t, setTweak] = useTweaks(FF_TWEAK_DEFAULTS);
+  const desktop = useIsDesktop();
 
   // phase : splash | onboarding | main
   const stored = (() => { try { return JSON.parse(localStorage.getItem('fitforge_profile') || 'null'); } catch { return null; } })();
@@ -81,35 +115,41 @@ export default function FitForgeApp() {
     setTab('dashboard'); setPhase('splash');
   };
 
+  const showBottomNav = phase === 'main' && !desktop && !workout && !summary;
+
   return (
     <div className="ff-stage">
       <div className="ff-app">
-        {phase === 'splash' && <SplashScreen onDone={() => setPhase('onboarding')} />}
-        {phase === 'onboarding' && <OnboardingScreen onDone={completeOnboarding} />}
+        {phase === 'main' && desktop && !workout && !summary && <TopNav tab={tab} onChange={setTab} />}
 
-        {phase === 'main' && (
-          <>
+        <div className="ff-app-main">
+          {phase === 'splash' && <SplashScreen onDone={() => setPhase('onboarding')} />}
+          {phase === 'onboarding' && <OnboardingScreen onDone={completeOnboarding} desktop={desktop} />}
+
+          {phase === 'main' && (
             <div key={tab} className="anim-fade-up" style={{ height: '100%' }} data-screen-label={tab}>
-              {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} onStartWorkout={() => setWorkout(true)} />}
-              {tab === 'program' && <ProgramScreen onStartWorkout={() => setWorkout(true)} />}
-              {tab === 'journal' && <JournalScreen />}
-              {tab === 'profile' && <ProfileScreen name={name} onReplayOnboarding={replay} />}
+              {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={() => setWorkout(true)} />}
+              {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={() => setWorkout(true)} />}
+              {tab === 'journal' && <JournalScreen desktop={desktop} />}
+              {tab === 'profile' && <ProfileScreen name={name} desktop={desktop} onReplayOnboarding={replay} />}
             </div>
-            {!workout && !summary && <BottomNav tab={tab} onChange={setTab} />}
-          </>
-        )}
+          )}
+
+          {showBottomNav && <BottomNav tab={tab} onChange={setTab} />}
+        </div>
 
         {workout && (
           <WorkoutPlayer
             gesture={t.gesture}
             timerDesign={t.timerDesign}
+            desktop={desktop}
             onQuit={() => setWorkout(false)}
             onFinish={(s) => { setWorkout(false); setSummary(s); }}
           />
         )}
 
         {summary && (
-          <SummaryScreen session={summary} onShare={() => setShare(true)} onHome={() => { setSummary(null); setTab('dashboard'); }} />
+          <SummaryScreen session={summary} desktop={desktop} onShare={() => setShare(true)} onHome={() => { setSummary(null); setTab('dashboard'); }} />
         )}
         {share && summary && <ShareCard session={summary} onClose={() => setShare(false)} />}
 

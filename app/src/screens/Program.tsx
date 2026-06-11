@@ -56,21 +56,22 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
   );
 }
 
-export function ProgramScreen({ onStartWorkout }: { onStartWorkout: () => void }) {
+export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWorkout: () => void; desktop?: boolean }) {
   const { weeks, history, TODAY, fmtISO, currentWeek } = FF;
   const [open, setOpen] = React.useState<Set<number>>(new Set([currentWeek]));
   const [selDay, setSelDay] = React.useState<Day | null>(null);
   const toggle = (n: number) => setOpen((o) => { const s = new Set(o); s.has(n) ? s.delete(n) : s.add(n); return s; });
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: 110 }}>
-      <header style={{ padding: '26px 20px 4px' }}>
+    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
+     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
+      <header style={{ padding: desktop ? '18px 0 4px' : '26px 20px 4px' }}>
         <h1 className="ff-display" style={{ fontSize: 28, fontWeight: 700 }}>Programme</h1>
         <p style={{ fontSize: 13, color: 'var(--txt-1)', marginTop: 6 }}>Carrure + Définition · 15 juin → 14 sept. 2026</p>
       </header>
 
       {/* phases */}
-      <div style={{ display: 'flex', gap: 8, padding: '14px 20px 4px', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 8, padding: desktop ? '14px 0 4px' : '14px 20px 4px', overflowX: 'auto' }}>
         {FF.PHASES.map((p, i) => {
           const active = currentWeek >= p.weeks[0] && currentWeek <= p.weeks[1];
           return (
@@ -84,7 +85,9 @@ export function ProgramScreen({ onStartWorkout }: { onStartWorkout: () => void }
       </div>
 
       {/* timeline */}
-      <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={desktop
+        ? { padding: '16px 0 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: 12, alignItems: 'start' }
+        : { padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {weeks.map((w) => {
           const isOpen = open.has(w.number);
           const isCurrent = w.number === currentWeek;
@@ -140,6 +143,7 @@ export function ProgramScreen({ onStartWorkout }: { onStartWorkout: () => void }
           );
         })}
       </div>
+     </div>
       {selDay && <DayDetail day={selDay} onClose={() => setSelDay(null)} onStart={() => { setSelDay(null); onStartWorkout(); }} />}
     </div>
   );

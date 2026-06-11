@@ -112,7 +112,8 @@ function MagneticSlider({ label, value, onChange, min, max, unit }: {
 }
 
 // ---------- onboarding ----------
-export function OnboardingScreen({ onDone }: { onDone: (name: string) => void }) {
+export function OnboardingScreen({ onDone, desktop = false }: { onDone: (name: string) => void; desktop?: boolean }) {
+  const col = desktop ? { width: '100%', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' } : undefined;
   const [step, setStep] = React.useState(0);
   const [name, setName] = React.useState('');
   const [gender, setGender] = React.useState<string | null>(null);
@@ -143,15 +144,15 @@ export function OnboardingScreen({ onDone }: { onDone: (name: string) => void })
   if (forging) return <ForgeLoading onDone={() => onDone(name.trim() || 'Alex')} />;
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-0)', zIndex: 90 }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: desktop ? 'center' : undefined, background: 'var(--bg-0)', zIndex: 90 }}>
       {/* progress */}
-      <div style={{ display: 'flex', gap: 6, padding: '22px 24px 10px' }}>
+      <div style={{ display: 'flex', gap: 6, padding: '22px 24px 10px', ...col }}>
         {[0, 1, 2].map((i) => (
           <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= step ? 'var(--accent)' : 'var(--bg-2)', boxShadow: i <= step ? '0 0 calc(8px * var(--glow)) rgba(0,240,255,0.4)' : 'none', transition: 'background var(--dur-med) ease' }}></div>
         ))}
       </div>
 
-      <div key={step} className="anim-fade-up" style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px', display: 'flex', flexDirection: 'column', gap: 26 }}>
+      <div key={step} className="anim-fade-up" style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px', display: 'flex', flexDirection: 'column', gap: 26, ...col }}>
         {step === 0 && (
           <>
             <header>
@@ -248,7 +249,7 @@ export function OnboardingScreen({ onDone }: { onDone: (name: string) => void })
         )}
       </div>
 
-      <div style={{ padding: '12px 24px calc(24px + env(safe-area-inset-bottom))', display: 'flex', gap: 12 }}>
+      <div style={{ padding: '12px 24px calc(24px + env(safe-area-inset-bottom))', display: 'flex', gap: 12, ...col }}>
         {step > 0 && (
           <button className="pressable" onClick={() => setStep(step - 1)} aria-label="Retour"
             style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt-1)' }}>

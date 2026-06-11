@@ -55,7 +55,7 @@ function LiftChart({ series, active }: { series: LiftSeries[]; active: Set<strin
   );
 }
 
-export function JournalScreen() {
+export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
   const { weeklyVolume, liftSeries, weeks, history } = FF;
   const [period, setPeriod] = React.useState('Mois');
   const [active, setActive] = React.useState<Set<string>>(new Set(['dev-incline', 'squat-guide']));
@@ -74,20 +74,22 @@ export function JournalScreen() {
   const toggleLift = (id: string) => setActive((a) => { const s = new Set(a); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: 110 }}>
-      <header style={{ padding: '26px 20px 14px' }}>
+    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
+     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
+      <header style={{ padding: desktop ? '18px 0 14px' : '26px 20px 14px' }}>
         <h1 className="ff-display" style={{ fontSize: 28, fontWeight: 700 }}>Journal</h1>
       </header>
-      <div style={{ padding: '0 20px' }}>
+      <div style={{ padding: desktop ? 0 : '0 20px', maxWidth: desktop ? 460 : undefined }}>
         <Segmented options={['Semaine', 'Mois', '3 Mois', 'Tout']} value={period} onChange={setPeriod} />
       </div>
 
-      <section className="ff-card" style={{ margin: '16px 20px 0', padding: 18 }}>
+     <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14, marginTop: 16, alignItems: 'start' } : undefined}>
+      <section className="ff-card" style={{ margin: desktop ? 0 : '16px 20px 0', padding: 18 }}>
         <div className="ff-label" style={{ marginBottom: 14 }}>Volume hebdomadaire · kg</div>
         <VolumeBarChart data={volData} />
       </section>
 
-      <section className="ff-card" style={{ margin: '14px 20px 0', padding: 18 }}>
+      <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18 }}>
         <div className="ff-label" style={{ marginBottom: 12 }}>Lifts clés · charge max</div>
         <LiftChart series={liftSeries} active={active} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
@@ -105,7 +107,7 @@ export function JournalScreen() {
         </div>
       </section>
 
-      <section className="ff-card" style={{ margin: '14px 20px 0', padding: 18 }}>
+      <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18 }}>
         <div className="ff-label" style={{ marginBottom: 14 }}>Consistance · 12 semaines</div>
         <ConsistencyHeatmap cell={15} gap={4} />
         <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 11, color: 'var(--txt-1)' }}>
@@ -114,10 +116,11 @@ export function JournalScreen() {
           <span><span style={{ color: 'var(--accent)' }}>■</span> aujourd’hui</span>
         </div>
       </section>
+     </div>
 
-      <section style={{ margin: '22px 20px 0' }}>
+      <section style={{ margin: desktop ? '24px 0 0' : '22px 20px 0' }}>
         <div className="ff-label" style={{ marginBottom: 12 }}>Séances passées</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 10, alignItems: 'start' } : { display: 'flex', flexDirection: 'column', gap: 10 }}>
           {sessions.map(({ day, s }) => {
             const isExp = expanded === day.iso;
             return (
@@ -157,6 +160,7 @@ export function JournalScreen() {
           })}
         </div>
       </section>
+     </div>
     </div>
   );
 }
