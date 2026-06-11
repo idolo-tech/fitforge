@@ -2,7 +2,8 @@
 import React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { FFIcon } from './icons';
-import { weeks, history, fmtISO, TODAY } from '../data/program';
+import { weeks, fmtISO, TODAY } from '../data/program';
+import { useStore } from '../data/store';
 
 // ---------- bouton néon principal ----------
 interface NeonButtonProps {
@@ -103,18 +104,23 @@ export function Sparkline({ points, width = 120, height = 36, color = 'var(--acc
 
 // ---------- heatmap de consistance (style contributions) ----------
 export function ConsistencyHeatmap({ cell = 14, gap = 4 }: { cell?: number; gap?: number }) {
+  const data = useStore();
+  const todayIso = fmtISO(TODAY);
   return (
     <div style={{ display: 'flex', gap }}>
       {weeks.slice(0, 12).map((w) => (
         <div key={w.number} style={{ display: 'flex', flexDirection: 'column', gap }}>
           {w.days.map((d) => {
-            const s = history[d.iso];
+            const s = data.sessions[d.iso];
             let bg = '#111111', glow = 'none';
-            if (s && s.status === 'completed') {
+            if (s) {
               const intensity = Math.min(1, (s.volume || 1500) / 5000);
               bg = `rgba(57, 255, 20, ${0.25 + intensity * 0.6})`;
-            } else if (s && s.status === 'missed') bg = 'rgba(255, 61, 113, 0.22)';
-            else if (d.iso === fmtISO(TODAY)) { bg = 'rgba(0, 240, 255, 0.5)'; glow = '0 0 calc(8px * var(--glow)) rgba(0,240,255,0.5)'; }
+            } else if (d.iso === todayIso) {
+              bg = 'rgba(0, 240, 255, 0.5)'; glow = '0 0 calc(8px * var(--glow)) rgba(0,240,255,0.5)';
+            } else if (d.date < TODAY) {
+              bg = 'rgba(255, 61, 113, 0.18)'; // séance passée non faite
+            }
             return <div key={d.iso} title={`${d.short} — ${d.iso}`}
               style={{ width: cell, height: cell, borderRadius: 3.5, background: bg, boxShadow: glow }} />;
           })}

@@ -1,8 +1,10 @@
-/* FitForge — Profil & Corps */
+/* FitForge — Profil & Corps (données réelles, saisies par l'utilisateur) */
 import React from 'react';
 import { FFIcon } from '../components/icons';
 import { Segmented, Sparkline } from '../components/ui';
-import * as FF from '../data/program';
+import { useStore, addBodyWeight, addMeasurement, measurementViews } from '../data/store';
+
+export interface Profile { name: string; weight: number; height: number; goal: string; }
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -23,13 +25,39 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 }
 
-export function ProfileScreen({ name, onReplayOnboarding, desktop = false }: { name: string; onReplayOnboarding: () => void; desktop?: boolean }) {
-  const { user, measurements, bodyWeight } = FF;
+/* mini-saisie numérique + bouton */
+function AddValue({ placeholder, unit, onAdd }: { placeholder: string; unit: string; onAdd: (v: number) => void }) {
+  const [v, setV] = React.useState('');
+  const submit = () => {
+    const n = parseFloat(v.replace(',', '.'));
+    if (!isNaN(n) && n > 0) { onAdd(+n.toFixed(1)); setV(''); }
+  };
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <input value={v} onChange={(e) => setV(e.target.value)} inputMode="decimal" placeholder={placeholder}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+        style={{ width: 92, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: '9px 12px', fontSize: 14, color: 'var(--txt-0)', outline: 'none', fontFamily: 'var(--font-mono)' }} />
+      <span style={{ fontSize: 12, color: 'var(--txt-2)' }}>{unit}</span>
+      <button className="pressable ff-label" onClick={submit} style={{ marginLeft: 'auto', padding: '9px 14px', borderRadius: 10, border: '1px solid rgba(0,240,255,0.35)', color: 'var(--accent)', fontSize: 11 }}>
+        Enregistrer
+      </button>
+    </div>
+  );
+}
+
+export function ProfileScreen({ profile, onReplayOnboarding, desktop = false }: { profile: Profile; onReplayOnboarding: () => void; desktop?: boolean }) {
+  const data = useStore();
+  const name = profile.name;
   const [selZone, setSelZone] = React.useState('shoulders');
   const [units, setUnits] = React.useState('kg / cm');
   const [focusMode, setFocusMode] = React.useState(false);
   const [notifs, setNotifs] = React.useState(true);
-  const zone = measurements.find((m) => m.key === selZone);
+
+  const measures = measurementViews(data);
+  const zone = measures.find((m) => m.key === selZone)!;
+  const bw = data.bodyWeight;
+  const currentWeight = bw.length ? bw[bw.length - 1].value : profile.weight;
+  const weightDelta = bw.length >= 2 ? +(bw[bw.length - 1].value - bw[0].value).toFixed(1) : null;
 
   const ANGLES = ['Face', 'Profil G', 'Profil D', 'Dos'];
 
@@ -42,7 +70,7 @@ export function ProfileScreen({ name, onReplayOnboarding, desktop = false }: { n
         </div>
         <div>
           <h1 className="ff-display" style={{ fontSize: 24, fontWeight: 700 }}>{name}</h1>
-          <p style={{ fontSize: 12.5, color: 'var(--txt-1)', marginTop: 3 }}>{user.goal} · {user.weight} kg · {user.height} cm</p>
+          <p style={{ fontSize: 12.5, color: 'var(--txt-1)', marginTop: 3 }}>{profile.goal} · {currentWeight} kg · {profile.height} cm</p>
         </div>
       </header>
 
@@ -64,7 +92,7 @@ export function ProfileScreen({ name, onReplayOnboarding, desktop = false }: { n
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 8 }}>Mois 1 · glisse pour comparer avant/après une fois 2 séries capturées.</p>
+        <p style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 8 }}>Capture 4 angles aujourd’hui, puis compare au fil des semaines.</p>
       </section>
 
      <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' } : undefined}>
@@ -72,7 +100,7 @@ export function ProfileScreen({ name, onReplayOnboarding, desktop = false }: { n
       <section className="ff-card" style={{ margin: desktop ? 0 : '20px 20px 0', padding: 18 }}>
         <div className="ff-label" style={{ marginBottom: 14 }}>Mensurations · cm</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {measurements.map((m) => (
+          {measures.map((m) => (
             <button key={m.key} className="pressable" onClick={() => setSelZone(m.key)} style={{
               padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
               border: `1px solid ${selZone === m.key ? 'var(--accent)' : 'var(--line)'}`,
@@ -81,34 +109,40 @@ export function ProfileScreen({ name, onReplayOnboarding, desktop = false }: { n
             }}>{m.zone}</button>
           ))}
         </div>
-        {zone && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div>
-              <div className="ff-mono" style={{ fontSize: 34, fontWeight: 700 }}>{zone.values[zone.values.length - 1]}<span style={{ fontSize: 14, color: 'var(--txt-1)' }}> cm</span></div>
-              <div style={{ fontSize: 11.5, color: zone.key === 'waist' ? 'var(--accent-3)' : 'var(--accent-3)', marginTop: 4 }} className="ff-mono">
-                {zone.key === 'waist' ? '▼' : '▲'} {Math.abs(zone.values[zone.values.length - 1] - zone.values[0]).toFixed(1)} cm depuis le début
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 14, minHeight: 56 }}>
+          <div>
+            <div className="ff-mono" style={{ fontSize: 34, fontWeight: 700 }}>{zone.current != null ? zone.current : '—'}<span style={{ fontSize: 14, color: 'var(--txt-1)' }}> cm</span></div>
+            {zone.delta != null && (
+              <div style={{ fontSize: 11.5, color: zone.delta >= 0 ? 'var(--accent-3)' : 'var(--accent-2)', marginTop: 4 }} className="ff-mono">
+                {zone.delta >= 0 ? '▲' : '▼'} {Math.abs(zone.delta)} cm depuis le début
               </div>
-              <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 4 }}>Objectif : {zone.goal} cm</div>
-            </div>
-            <div style={{ flex: 1 }}>
-              <Sparkline points={zone.values} width={150} height={48} color={zone.key === 'waist' ? '#FF3D71' : '#00F0FF'} />
-            </div>
+            )}
           </div>
-        )}
+          <div style={{ flex: 1 }}>
+            {zone.values.length >= 2 && <Sparkline points={zone.values} width={150} height={48} color={zone.key === 'waist' ? '#FF3D71' : '#00F0FF'} />}
+          </div>
+        </div>
+        <AddValue placeholder={`${zone.zone}…`} unit="cm" onAdd={(v) => addMeasurement(zone.key, v)} />
       </section>
 
       {/* poids corporel */}
-      <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18, display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div>
-          <div className="ff-label">Poids corporel</div>
-          <div className="ff-mono" style={{ fontSize: 34, fontWeight: 700, marginTop: 6 }}>{user.weight}<span style={{ fontSize: 14, color: 'var(--txt-1)' }}> kg</span></div>
-          <div style={{ fontSize: 11.5, color: 'var(--accent-3)', marginTop: 4 }} className="ff-mono">▲ +1,2 kg en 4 semaines</div>
+      <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 14 }}>
+          <div>
+            <div className="ff-label">Poids corporel</div>
+            <div className="ff-mono" style={{ fontSize: 34, fontWeight: 700, marginTop: 6 }}>{currentWeight}<span style={{ fontSize: 14, color: 'var(--txt-1)' }}> kg</span></div>
+            {weightDelta != null && (
+              <div style={{ fontSize: 11.5, color: weightDelta >= 0 ? 'var(--accent-3)' : 'var(--accent-2)', marginTop: 4 }} className="ff-mono">
+                {weightDelta >= 0 ? '▲' : '▼'} {Math.abs(weightDelta)} kg depuis le début
+              </div>
+            )}
+          </div>
+          <div style={{ flex: 1 }}>
+            {bw.length >= 2 && <Sparkline points={bw.map((b) => b.value)} width={150} height={48} color="#39FF14" />}
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <Sparkline points={bodyWeight.map((b) => b.value)} width={150} height={48} color="#39FF14" />
-        </div>
+        <AddValue placeholder="Poids…" unit="kg" onAdd={(v) => addBodyWeight(v)} />
       </section>
-
      </div>
 
       {/* paramètres */}

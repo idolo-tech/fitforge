@@ -15,7 +15,8 @@ export interface Phase {
   nutrition: string;
 }
 
-/** Exercise template + resolved instance (target weight for a given week). */
+/** Exercise as defined by the program. Loads are NOT prescribed by the plan —
+ *  the user enters them during the session (the store remembers the last one). */
 export interface Exercise {
   id: string;
   name: string;
@@ -23,13 +24,9 @@ export interface Exercise {
   sets: number;
   reps: string;
   rest: number;
-  /** starting load in kg, or null for bodyweight */
-  base: number | null;
-  /** progression increment in kg */
-  inc: number;
+  /** true = external load (gym) → show weight input ; false = bodyweight / time */
+  weighted: boolean;
   note: string;
-  /** resolved target load for the week, or null for bodyweight */
-  target: number | null;
 }
 
 export interface Day {

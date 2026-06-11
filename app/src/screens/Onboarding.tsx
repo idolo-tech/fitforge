@@ -112,7 +112,8 @@ function MagneticSlider({ label, value, onChange, min, max, unit }: {
 }
 
 // ---------- onboarding ----------
-export function OnboardingScreen({ onDone, desktop = false }: { onDone: (name: string) => void; desktop?: boolean }) {
+export interface OnboardingResult { name: string; weight: number; height: number; goal: string; }
+export function OnboardingScreen({ onDone, desktop = false }: { onDone: (p: OnboardingResult) => void; desktop?: boolean }) {
   const col = desktop ? { width: '100%', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' } : undefined;
   const [step, setStep] = React.useState(0);
   const [name, setName] = React.useState('');
@@ -141,7 +142,8 @@ export function OnboardingScreen({ onDone, desktop = false }: { onDone: (name: s
 
   const canNext = step === 0 ? !!(name.trim() && gender) : step === 1 ? !!goal : equip.length > 0;
 
-  if (forging) return <ForgeLoading onDone={() => onDone(name.trim() || 'Alex')} />;
+  const goalLabel = goal === 'fatloss' ? 'Perte de gras' : goal === 'maintain' ? 'Maintien' : 'Prise de muscle';
+  if (forging) return <ForgeLoading onDone={() => onDone({ name: name.trim() || 'Athlète', weight, height, goal: goalLabel })} />;
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: desktop ? 'center' : undefined, background: 'var(--bg-0)', zIndex: 90 }}>

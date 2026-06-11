@@ -4,7 +4,9 @@ import { FFIcon } from '../components/icons';
 import { NeonButton, FFBadge, Stepper, RIRSelector, ExercisePlaceholder } from '../components/ui';
 import { RestTimer } from './WorkoutExtras';
 import * as FF from '../data/program';
-import type { SessionSummary } from '../data/types';
+import { lastWeight, saveSession, getData } from '../data/store';
+import type { LoggedSession } from '../data/store';
+import type { SessionSummary, Day } from '../data/types';
 
 export function fmtClock(s: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -76,16 +78,23 @@ function ValidateControl({ gesture, onValidate }: { gesture: string; onValidate:
 
 // ---------- player principal ----------
 interface WorkoutPlayerProps {
+  day: Day;
   gesture: string;
   timerDesign: string;
   desktop?: boolean;
   onFinish: (s: SessionSummary) => void;
   onQuit: () => void;
 }
-export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish, onQuit }: WorkoutPlayerProps) {
+const DEFAULT_LOAD = 20; // charge de départ proposée si aucune saisie précédente
+export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFinish, onQuit }: WorkoutPlayerProps) {
   const pane = desktop ? { width: '100%', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' } : undefined;
-  const day = FF.todayDay!;
   const exercises = day.exercises;
+  // snapshot des charges/séances AVANT cette séance (pour PR + comparaison)
+  const prevWeights = React.useRef<Record<string, number>>(getData().lastWeights);
+  const prevSession = React.useRef<LoggedSession | undefined>(
+    Object.values(getData().sessions).filter((s) => s.dayId === day.id).sort((a, b) => b.iso.localeCompare(a.iso))[0],
+  );
+  const prefill = (ex: typeof exercises[number]) => (ex.weighted ? (lastWeight(ex.id) ?? DEFAULT_LOAD) : 0);
 
   const [exIdx, setExIdx] = React.useState(0);
   const [setNum, setSetNum] = React.useState(1);
@@ -98,13 +107,13 @@ export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish,
   const [logsOpen, setLogsOpen] = React.useState(false);
 
   const ex = exercises[exIdx];
-  const isWeighted = ex.target != null;
+  const isWeighted = ex.weighted;
   const range = FF.repsRange(ex.reps);
-  const smartStep = isWeighted && ex.target! >= 40 ? 2.5 : 1;
 
-  const [weight, setWeight] = React.useState(ex.target || 0);
+  const [weight, setWeight] = React.useState(() => prefill(ex));
   const [reps, setReps] = React.useState(range ? range[0] : 10);
   const [rir, setRir] = React.useState(2);
+  const smartStep = isWeighted && weight >= 40 ? 2.5 : 1;
 
   // timer global
   React.useEffect(() => {
@@ -123,7 +132,7 @@ export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish,
   // reset inputs au changement d'exercice
   React.useEffect(() => {
     const e2 = exercises[exIdx];
-    setWeight(e2.target || 0);
+    setWeight(prefill(e2));
     const r2 = FF.repsRange(e2.reps);
     setReps(r2 ? r2[0] : 10);
     setRir(2);
@@ -155,20 +164,52 @@ export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish,
 
   const finish = () => {
     const allLogs = [...logs, { exIdx, exName: ex.name, set: setNum, weight: isWeighted ? weight : null, reps, rir }];
-    const volume = allLogs.reduce((a, l) => a + (l.weight ? l.weight * l.reps : 0), 0);
+    const volume = Math.round(allLogs.reduce((a, l) => a + (l.weight ? l.weight * l.reps : 0), 0));
     const intensity = allLogs.filter((_, i) => i % 2 === 0).map((l) => 4 - l.rir);
+    const avgRir = allLogs.length ? +(allLogs.reduce((a, l) => a + l.rir, 0) / allLogs.length).toFixed(1) : 2;
+
+    // regroupe les logs par exercice
+    const byEx: Record<number, { id: string; name: string; sets: { weight: number | null; reps: number; rir: number }[] }> = {};
+    allLogs.forEach((l) => {
+      const e = exercises[l.exIdx];
+      if (!byEx[l.exIdx]) byEx[l.exIdx] = { id: e.id, name: e.name, sets: [] };
+      byEx[l.exIdx].sets.push({ weight: l.weight, reps: l.reps, rir: l.rir });
+    });
+    const loggedExercises = Object.values(byEx);
+
+    // PR : charge max loggée > meilleure charge précédente
+    const prs: { exercise: string; prev: number; next: number }[] = [];
+    loggedExercises.forEach((e) => {
+      const top = Math.max(0, ...e.sets.map((s) => s.weight || 0));
+      const prev = prevWeights.current[e.id] ?? 0;
+      if (top > 0 && top > prev) prs.push({ exercise: e.name, prev, next: top });
+    });
+
+    const session: LoggedSession = {
+      iso: day.iso, dayId: day.id, dayName: day.name,
+      finishedAt: new Date().toISOString(), durationSec: elapsed, volume, avgRir,
+      exercises: loggedExercises, prs,
+    };
+    saveSession(session);
+
+    // comparaison vs même séance précédente (si elle existe)
+    const prev = prevSession.current;
+    const comparison = prev
+      ? [
+          { label: 'Volume total', value: `${volume - prev.volume >= 0 ? '+' : ''}${(volume - prev.volume).toLocaleString('fr-FR')} kg`, delta: volume - prev.volume },
+          { label: 'Durée', value: `${elapsed - prev.durationSec >= 0 ? '+' : ''}${Math.round((elapsed - prev.durationSec) / 60)} min`, delta: prev.durationSec - elapsed },
+          { label: 'PRs battus', value: `${prs.length}`, delta: prs.length },
+        ]
+      : [{ label: 'Première fois sur cette séance', value: 'référence posée', delta: 1 }];
+
     onFinish({
       dayName: day.name,
-      volume: Math.round(volume),
+      volume,
       duration: fmtClock(elapsed),
-      prCount: allLogs.some((l) => l.weight && l.weight > (exercises[l.exIdx].target || 0)) ? 1 : 1,
+      prCount: prs.length,
       kcal: Math.round(220 + elapsed * 0.09),
-      intensity: intensity.length >= 2 ? intensity : [1, 2, 2, 3],
-      comparison: [
-        { label: 'Volume total', value: '+420 kg', delta: 1 },
-        { label: 'Squat guidé', value: '+2,5 kg', delta: 1 },
-        { label: 'Durée', value: '-4 min', delta: 1 },
-      ],
+      intensity: intensity.length >= 2 ? intensity : [1, 2, 2],
+      comparison,
     });
   };
 
@@ -233,7 +274,8 @@ export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish,
           <h1 className="ff-display" style={{ fontSize: 27, fontWeight: 700, lineHeight: 1.1 }}>{ex.name}</h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <FFBadge>{ex.muscle}</FFBadge>
-            <FFBadge>Cible : {ex.reps}{isWeighted ? ` × ${ex.target} kg` : ''}</FFBadge>
+            <FFBadge>Objectif : {ex.reps} reps{isWeighted ? ' · charge libre' : ''}</FFBadge>
+            {isWeighted && lastWeight(ex.id) != null && <FFBadge>Dernière : {lastWeight(ex.id)} kg</FFBadge>}
             <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
               aria-label={`Voir la démo : ${ex.name}`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.35)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>

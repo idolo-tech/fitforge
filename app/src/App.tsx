@@ -5,13 +5,17 @@ import type { IconName } from './components/icons';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSlider } from './components/TweaksPanel';
 import { useIsDesktop } from './hooks/useMediaQuery';
 import { SplashScreen, OnboardingScreen } from './screens/Onboarding';
+import type { OnboardingResult } from './screens/Onboarding';
 import { DashboardScreen } from './screens/Dashboard';
 import { ProgramScreen } from './screens/Program';
 import { JournalScreen } from './screens/Journal';
 import { ProfileScreen } from './screens/Profile';
+import type { Profile } from './screens/Profile';
 import { WorkoutPlayer } from './screens/WorkoutPlayer';
 import { SummaryScreen, ShareCard } from './screens/WorkoutExtras';
-import type { SessionSummary } from './data/types';
+import { seedBodyWeight } from './data/store';
+import { user as DEFAULT_USER } from './data/program';
+import type { SessionSummary, Day } from './data/types';
 
 const FF_TWEAK_DEFAULTS = {
   timerDesign: 'Ring',
@@ -20,6 +24,15 @@ const FF_TWEAK_DEFAULTS = {
   glow: 100,
   speed: 100,
 };
+
+const PROFILE_KEY = 'fitforge_profile';
+function loadProfile(): Profile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (raw) return { ...DEFAULT_USER, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return null;
+}
 
 type Tab = 'dashboard' | 'program' | 'journal' | 'profile';
 
@@ -90,14 +103,14 @@ export default function FitForgeApp() {
   const [t, setTweak] = useTweaks(FF_TWEAK_DEFAULTS);
   const desktop = useIsDesktop();
 
-  // phase : splash | onboarding | main
-  const stored = (() => { try { return JSON.parse(localStorage.getItem('fitforge_profile') || 'null'); } catch { return null; } })();
-  const [phase, setPhase] = React.useState<'splash' | 'onboarding' | 'main'>(stored ? 'main' : 'splash');
-  const [name, setName] = React.useState<string>(stored ? stored.name : 'Alex');
+  const [profile, setProfile] = React.useState<Profile | null>(() => loadProfile());
+  const [phase, setPhase] = React.useState<'splash' | 'onboarding' | 'main'>(profile ? 'main' : 'splash');
   const [tab, setTab] = React.useState<Tab>('dashboard');
-  const [workout, setWorkout] = React.useState(false);
+  const [workoutDay, setWorkoutDay] = React.useState<Day | null>(null);
   const [summary, setSummary] = React.useState<SessionSummary | null>(null);
   const [share, setShare] = React.useState(false);
+
+  const name = profile?.name || DEFAULT_USER.name;
 
   // applique glow & speed sur :root
   React.useEffect(() => {
@@ -105,22 +118,24 @@ export default function FitForgeApp() {
     document.documentElement.style.setProperty('--speed', String(100 / Math.max(25, t.speed)));
   }, [t.glow, t.speed]);
 
-  const completeOnboarding = (n: string) => {
-    setName(n);
-    try { localStorage.setItem('fitforge_profile', JSON.stringify({ name: n })); } catch { /* ignore */ }
+  const completeOnboarding = (p: OnboardingResult) => {
+    const prof: Profile = { name: p.name, weight: p.weight, height: p.height, goal: p.goal };
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch { /* ignore */ }
+    seedBodyWeight(p.weight);
+    setProfile(prof);
     setPhase('main');
   };
   const replay = () => {
-    try { localStorage.removeItem('fitforge_profile'); } catch { /* ignore */ }
-    setTab('dashboard'); setPhase('splash');
+    try { localStorage.removeItem(PROFILE_KEY); } catch { /* ignore */ }
+    setProfile(null); setTab('dashboard'); setPhase('splash');
   };
 
-  const showBottomNav = phase === 'main' && !desktop && !workout && !summary;
+  const showBottomNav = phase === 'main' && !desktop && !workoutDay && !summary;
 
   return (
     <div className="ff-stage">
       <div className="ff-app">
-        {phase === 'main' && desktop && !workout && !summary && <TopNav tab={tab} onChange={setTab} />}
+        {phase === 'main' && desktop && !workoutDay && !summary && <TopNav tab={tab} onChange={setTab} />}
 
         <div className="ff-app-main">
           {phase === 'splash' && <SplashScreen onDone={() => setPhase('onboarding')} />}
@@ -128,23 +143,24 @@ export default function FitForgeApp() {
 
           {phase === 'main' && (
             <div key={tab} className="anim-fade-up" style={{ height: '100%' }} data-screen-label={tab}>
-              {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={() => setWorkout(true)} />}
-              {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={() => setWorkout(true)} />}
+              {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} />}
+              {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'journal' && <JournalScreen desktop={desktop} />}
-              {tab === 'profile' && <ProfileScreen name={name} desktop={desktop} onReplayOnboarding={replay} />}
+              {tab === 'profile' && profile && <ProfileScreen profile={profile} desktop={desktop} onReplayOnboarding={replay} />}
             </div>
           )}
 
           {showBottomNav && <BottomNav tab={tab} onChange={setTab} />}
         </div>
 
-        {workout && (
+        {workoutDay && (
           <WorkoutPlayer
+            day={workoutDay}
             gesture={t.gesture}
             timerDesign={t.timerDesign}
             desktop={desktop}
-            onQuit={() => setWorkout(false)}
-            onFinish={(s) => { setWorkout(false); setSummary(s); }}
+            onQuit={() => setWorkoutDay(null)}
+            onFinish={(s) => { setWorkoutDay(null); setSummary(s); }}
           />
         )}
 

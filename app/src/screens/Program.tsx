@@ -3,11 +3,13 @@ import React from 'react';
 import { FFIcon } from '../components/icons';
 import { NeonButton, FFBadge } from '../components/ui';
 import * as FF from '../data/program';
+import { useStore, lastWeight } from '../data/store';
 import type { Day } from '../data/types';
 
 function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; onStart: () => void }) {
-  const { history, TODAY } = FF;
-  const s = history[day.iso];
+  const { TODAY } = FF;
+  const data = useStore();
+  const s = data.sessions[day.iso];
   const isToday = day.iso === FF.fmtISO(TODAY);
   const [note, setNote] = React.useState('');
   return (
@@ -23,7 +25,7 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <FFBadge>{day.location}</FFBadge>
             <FFBadge>{day.exercises.length} exercices</FFBadge>
-            {s && s.status === 'completed' && <FFBadge color="var(--accent-3)" bg="rgba(57,255,20,0.1)"><FFIcon name="check" size={12} /> Complétée</FFBadge>}
+            {s && <FFBadge color="var(--accent-3)" bg="rgba(57,255,20,0.1)"><FFIcon name="check" size={12} /> Complétée</FFBadge>}
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 22px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -37,7 +39,7 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</div>
                 <div className="ff-mono" style={{ fontSize: 11.5, color: 'var(--txt-1)', marginTop: 2 }}>
-                  {ex.sets} × {ex.reps}{ex.target ? ` · ${ex.target} kg` : ''}
+                  {ex.sets} × {ex.reps}{ex.weighted ? (lastWeight(ex.id) != null ? ` · ${lastWeight(ex.id)} kg` : ' · charge libre') : ''}
                 </div>
               </div>
               <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
@@ -52,9 +54,9 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
             aria-label="Note de séance"
             style={{ background: 'transparent', border: '1px dashed var(--line)', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: 'var(--txt-0)', outline: 'none' }} />
         </div>
-        {(isToday || (day.date < TODAY && (!s || s.status === 'missed'))) && (
+        {!s && (
           <div style={{ padding: '10px 22px calc(18px + env(safe-area-inset-bottom))' }}>
-            <NeonButton onClick={onStart}>DÉMARRER CETTE SÉANCE</NeonButton>
+            <NeonButton onClick={onStart}>{isToday ? 'DÉMARRER CETTE SÉANCE' : 'FAIRE CETTE SÉANCE'}</NeonButton>
           </div>
         )}
       </div>
@@ -62,8 +64,9 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
   );
 }
 
-export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWorkout: () => void; desktop?: boolean }) {
-  const { weeks, history, TODAY, fmtISO, currentWeek } = FF;
+export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWorkout: (d: Day) => void; desktop?: boolean }) {
+  const { weeks, TODAY, fmtISO, currentWeek } = FF;
+  const data = useStore();
   const [open, setOpen] = React.useState<Set<number>>(new Set([currentWeek]));
   const [selDay, setSelDay] = React.useState<Day | null>(null);
   const toggle = (n: number) => setOpen((o) => { const s = new Set(o); s.has(n) ? s.delete(n) : s.add(n); return s; });
@@ -111,7 +114,7 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
         {weeks.map((w) => {
           const isOpen = open.has(w.number);
           const isCurrent = w.number === currentWeek;
-          const doneCount = w.days.filter((d) => history[d.iso] && history[d.iso].status === 'completed').length;
+          const doneCount = w.days.filter((d) => data.sessions[d.iso]).length;
           return (
             <div key={w.number} className="ff-card" style={{
               borderLeft: isCurrent ? '2px solid var(--accent)' : '1px solid var(--line)',
@@ -133,10 +136,10 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
               {isOpen && (
                 <div className="anim-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 14px 14px' }}>
                   {w.days.map((d) => {
-                    const s = history[d.iso];
+                    const s = data.sessions[d.iso];
                     const isToday = d.iso === fmtISO(TODAY);
-                    const missed = s && s.status === 'missed';
-                    const done = s && s.status === 'completed';
+                    const done = !!s;
+                    const missed = !s && d.date < TODAY;
                     return (
                       <button key={d.id} className="pressable" onClick={() => setSelDay(d)} style={{
                         padding: '12px 12px', borderRadius: 12, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4,
@@ -209,7 +212,7 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
         </section>
       </div>
      </div>
-      {selDay && <DayDetail day={selDay} onClose={() => setSelDay(null)} onStart={() => { setSelDay(null); onStartWorkout(); }} />}
+      {selDay && <DayDetail day={selDay} onClose={() => setSelDay(null)} onStart={() => { const d = selDay; setSelDay(null); onStartWorkout(d); }} />}
     </div>
   );
 }

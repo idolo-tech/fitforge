@@ -1,0 +1,176 @@
+/* ============================================================
+   FitForge — store de données PERSONNEL (persistant, localStorage)
+   Toutes les stats partent de zéro et se remplissent au fil de
+   tes séances réelles. Aucune donnée simulée.
+   ============================================================ */
+import { useSyncExternalStore } from 'react';
+import {
+  TODAY, fmtISO, weeks, allDays, isoToWeek, KEY_LIFTS, MEASURE_DEFS, programStarted, firstSession,
+} from './program';
+import type { Day } from './types';
+
+const KEY = 'fitforge_data_v1';
+
+export interface LoggedSet { weight: number | null; reps: number; rir: number; }
+export interface LoggedExercise { id: string; name: string; sets: LoggedSet[]; }
+export interface LoggedSession {
+  iso: string;
+  dayId: string;
+  dayName: string;
+  finishedAt: string;     // ISO datetime
+  durationSec: number;
+  volume: number;
+  avgRir: number;
+  exercises: LoggedExercise[];
+  prs: { exercise: string; prev: number; next: number }[];
+}
+export interface BodyEntry { date: string; value: number; }
+export interface MeasureEntry { date: string; value: number; }
+
+export interface StoreData {
+  sessions: Record<string, LoggedSession>;   // par date ISO
+  bodyWeight: BodyEntry[];
+  measurements: Record<string, MeasureEntry[]>;
+  lastWeights: Record<string, number>;        // exId -> dernière charge saisie
+}
+
+const EMPTY: StoreData = { sessions: {}, bodyWeight: [], measurements: {}, lastWeights: {} };
+
+function load(): StoreData {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return { ...EMPTY, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return EMPTY;
+}
+
+let data: StoreData = load();
+const listeners = new Set<() => void>();
+
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch { /* ignore */ }
+  listeners.forEach((l) => l());
+}
+
+export function useStore(): StoreData {
+  return useSyncExternalStore(
+    (l) => { listeners.add(l); return () => { listeners.delete(l); }; },
+    () => data,
+  );
+}
+export const getData = (): StoreData => data;
+
+// ---------- mutations ----------
+export function saveSession(s: LoggedSession): void {
+  const lastWeights = { ...data.lastWeights };
+  s.exercises.forEach((e) => e.sets.forEach((st) => { if (st.weight != null) lastWeights[e.id] = st.weight; }));
+  data = { ...data, sessions: { ...data.sessions, [s.iso]: s }, lastWeights };
+  persist();
+}
+
+export function addBodyWeight(value: number): void {
+  const iso = fmtISO(TODAY);
+  const bodyWeight = data.bodyWeight.filter((b) => b.date !== iso).concat({ date: iso, value });
+  bodyWeight.sort((a, b) => a.date.localeCompare(b.date));
+  data = { ...data, bodyWeight };
+  persist();
+}
+
+export function addMeasurement(key: string, value: number): void {
+  const iso = fmtISO(TODAY);
+  const arr = (data.measurements[key] || []).filter((m) => m.date !== iso).concat({ date: iso, value });
+  arr.sort((a, b) => a.date.localeCompare(b.date));
+  data = { ...data, measurements: { ...data.measurements, [key]: arr } };
+  persist();
+}
+
+/** seed initial body weight from onboarding (only if none yet) */
+export function seedBodyWeight(value: number): void {
+  if (data.bodyWeight.length === 0) addBodyWeight(value);
+}
+
+export function lastWeight(exId: string): number | null {
+  return data.lastWeights[exId] ?? null;
+}
+
+// ---------- sélecteurs dérivés ----------
+export interface ActionableDay { day: Day; status: 'upcoming' | 'today' | 'next' | 'finished'; }
+
+export function actionableDay(d: StoreData): ActionableDay {
+  if (!programStarted) return { day: firstSession, status: 'upcoming' };
+  const todayIso = fmtISO(TODAY);
+  const todayDay = allDays.find((x) => x.iso === todayIso);
+  if (todayDay && !d.sessions[todayDay.iso]) return { day: todayDay, status: 'today' };
+  const next = allDays.find((x) => x.date >= TODAY && !d.sessions[x.iso]);
+  if (next) return { day: next, status: next.iso === todayIso ? 'today' : 'next' };
+  return { day: allDays[allDays.length - 1], status: 'finished' };
+}
+
+export function streak(d: StoreData): number {
+  const past = allDays.filter((x) => x.date <= TODAY).sort((a, b) => b.date.getTime() - a.date.getTime());
+  let n = 0;
+  for (const x of past) {
+    if (d.sessions[x.iso]) n++;
+    else if (x.iso === fmtISO(TODAY)) continue; // aujourd'hui pas encore fait → n'interrompt pas
+    else break;
+  }
+  return n;
+}
+
+export function completedCount(d: StoreData): number {
+  return Object.keys(d.sessions).length;
+}
+export function totalVolume(d: StoreData): number {
+  return Object.values(d.sessions).reduce((a, s) => a + (s.volume || 0), 0);
+}
+
+export interface WeekVol { week: number; volume: number; done: number; planned: number; }
+export function weeklyVolume(d: StoreData): WeekVol[] {
+  return weeks.map((w) => {
+    let volume = 0, done = 0;
+    w.days.forEach((day) => {
+      const s = d.sessions[day.iso];
+      if (s) { volume += s.volume || 0; done++; }
+    });
+    return { week: w.number, volume, done, planned: w.days.length };
+  });
+}
+
+export interface LiftPt { week: number; value: number; }
+export interface LiftSerie { id: string; name: string; color: string; points: LiftPt[]; }
+export function liftSeries(d: StoreData): LiftSerie[] {
+  return KEY_LIFTS.map((lift) => {
+    const points: LiftPt[] = [];
+    Object.values(d.sessions)
+      .sort((a, b) => a.iso.localeCompare(b.iso))
+      .forEach((s) => {
+        const ex = s.exercises.find((e) => e.id === lift.id);
+        if (ex) {
+          const top = Math.max(0, ...ex.sets.map((st) => st.weight || 0));
+          if (top) points.push({ week: isoToWeek[s.iso] || 1, value: top });
+        }
+      });
+    return { ...lift, points };
+  });
+}
+
+export interface SessionRow { day: Day; session: LoggedSession; }
+export function sessionList(d: StoreData): SessionRow[] {
+  const byIso: Record<string, Day> = {};
+  allDays.forEach((x) => { byIso[x.iso] = x; });
+  return Object.values(d.sessions)
+    .filter((s) => byIso[s.iso])
+    .sort((a, b) => b.iso.localeCompare(a.iso))
+    .map((s) => ({ day: byIso[s.iso], session: s }));
+}
+
+export interface MeasureView { zone: string; key: string; values: number[]; current: number | null; delta: number | null; }
+export function measurementViews(d: StoreData): MeasureView[] {
+  return MEASURE_DEFS.map((m) => {
+    const entries = d.measurements[m.key] || [];
+    const values = entries.map((e) => e.value);
+    const current = values.length ? values[values.length - 1] : null;
+    const delta = values.length >= 2 ? +(values[values.length - 1] - values[0]).toFixed(1) : null;
+    return { zone: m.zone, key: m.key, values, current, delta };
+  });
+}

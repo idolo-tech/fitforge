@@ -79,9 +79,14 @@ list:
 - **Animations** use CSS keyframes + React state (as in the design), not Framer
   Motion / GSAP. The `--glow` and `--speed` CSS variables scale every glow and
   duration globally (driven by the Tweaks panel).
-- **Data** is a deterministic in-memory mock (`data/program.ts`) seeded from the
-  user's 3-month plan — no Dexie/IndexedDB yet. State is local React state;
-  profile name + tweaks persist to `localStorage`.
+- **Data** is split in two: `data/program.ts` is the *pure* 12-week plan
+  (faithful to the PDF — exercises, sets, reps, notes, phases; no prescribed
+  loads, since the plan doesn't give any), and `data/store.ts` is a persistent
+  **personal store** (`localStorage`, via `useSyncExternalStore`). The program
+  starts **Mon 15 June 2026** and runs on the real calendar date; all stats
+  (streak, volume, lift progression, heatmap, PRs) start empty and fill from the
+  sessions you actually log. The workout player remembers your last load per
+  exercise. Body weight & measurements are entered in Profil.
 - **Exercise imagery** is intentionally striped placeholders with monospace
   labels (per the design) — drop in real photos/GIFs to replace
   `ExercisePlaceholder`.

@@ -1,11 +1,16 @@
-/* FitForge — Journal (historique & analytics) */
+/* FitForge — Journal (historique & analytics réels) */
 import React from 'react';
 import { FFIcon } from '../components/icons';
 import { FFBadge, Segmented, ConsistencyHeatmap } from '../components/ui';
 import * as FF from '../data/program';
-import type { WeeklyVolume, LiftSeries, Day, SessionRecord } from '../data/types';
+import { useStore, weeklyVolume, liftSeries, sessionList } from '../data/store';
+import type { WeekVol, LiftSerie } from '../data/store';
 
-function VolumeBarChart({ data }: { data: WeeklyVolume[] }) {
+function fmtMin(sec: number): string {
+  return `${Math.round(sec / 60)} min`;
+}
+
+function VolumeBarChart({ data }: { data: WeekVol[] }) {
   const max = Math.max(...data.map((d) => d.volume), 1);
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 7, height: 110 }}>
@@ -25,23 +30,25 @@ function VolumeBarChart({ data }: { data: WeeklyVolume[] }) {
   );
 }
 
-function LiftChart({ series, active }: { series: LiftSeries[]; active: Set<string> }) {
+function LiftChart({ series, active, maxWeek }: { series: LiftSerie[]; active: Set<string>; maxWeek: number }) {
   const W = 320, H = 130;
   const visible = series.filter((s) => active.has(s.id) && s.points.length >= 2);
   const allVals = visible.flatMap((s) => s.points.map((p) => p.value));
-  if (!allVals.length) return <div style={{ height: H, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt-2)', fontSize: 12 }}>Sélectionne un exercice</div>;
+  if (!allVals.length) {
+    return <div style={{ height: H, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt-2)', fontSize: 12, textAlign: 'center', padding: '0 20px' }}>
+      Logue au moins 2 séances avec charge pour voir la progression
+    </div>;
+  }
   const min = Math.min(...allVals) - 2, max = Math.max(...allVals) + 2;
-  const maxWeek = 4;
-  const px = (w: number) => 10 + ((w - 1) / (maxWeek - 1)) * (W - 20);
+  const px = (w: number) => 10 + ((w - 1) / Math.max(1, maxWeek - 1)) * (W - 20);
   const py = (v: number) => H - 18 - ((v - min) / (max - min)) * (H - 34);
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
       {[0.25, 0.5, 0.75].map((f) => <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} stroke="#161616" strokeWidth="1" />)}
       {visible.map((s) => {
-        // une valeur par semaine (la meilleure)
         const byWeek: Record<number, number> = {};
         s.points.forEach((p) => { byWeek[p.week] = Math.max(byWeek[p.week] || 0, p.value); });
-        const pts = Object.entries(byWeek).map(([w, v]) => ({ w: +w, v }));
+        const pts = Object.entries(byWeek).map(([w, v]) => ({ w: +w, v })).sort((a, b) => a.w - b.w);
         const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${px(p.w).toFixed(1)},${py(p.v).toFixed(1)}`).join(' ');
         return (
           <g key={s.id}>
@@ -50,26 +57,24 @@ function LiftChart({ series, active }: { series: LiftSeries[]; active: Set<strin
           </g>
         );
       })}
-      {[1, 2, 3, 4].map((w) => <text key={w} x={px(w)} y={H - 4} textAnchor="middle" fill="#4A4A4A" fontSize="9" fontFamily="JetBrains Mono">S{w}</text>)}
+      {Array.from({ length: maxWeek }, (_, i) => i + 1).map((w) => <text key={w} x={px(w)} y={H - 4} textAnchor="middle" fill="#4A4A4A" fontSize="9" fontFamily="JetBrains Mono">S{w}</text>)}
     </svg>
   );
 }
 
 export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
-  const { weeklyVolume, liftSeries, weeks, history } = FF;
+  const data = useStore();
   const [period, setPeriod] = React.useState('Mois');
   const [active, setActive] = React.useState<Set<string>>(new Set(['dev-incline', 'squat-guide']));
   const [expanded, setExpanded] = React.useState<string | null>(null);
 
-  const periodWeeks = period === 'Semaine' ? 1 : period === 'Mois' ? 4 : period === '3 Mois' ? 12 : 12;
-  const volData = weeklyVolume.slice(0, Math.max(4, Math.min(periodWeeks, 12)));
+  const allVol = weeklyVolume(data);
+  const series = liftSeries(data);
+  const sessions = sessionList(data);
+  const maxWeek = Math.max(2, FF.currentWeek);
 
-  const sessions: { day: Day; s: SessionRecord }[] = [];
-  weeks.forEach((w) => w.days.forEach((d) => {
-    const s = history[d.iso];
-    if (s && s.status === 'completed') sessions.push({ day: d, s });
-  }));
-  sessions.reverse();
+  const periodWeeks = period === 'Semaine' ? 1 : period === 'Mois' ? 4 : period === '3 Mois' ? 12 : 12;
+  const volData = allVol.slice(0, Math.max(4, Math.min(periodWeeks, 12)));
 
   const toggleLift = (id: string) => setActive((a) => { const s = new Set(a); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
@@ -91,9 +96,9 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
 
       <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18 }}>
         <div className="ff-label" style={{ marginBottom: 12 }}>Lifts clés · charge max</div>
-        <LiftChart series={liftSeries} active={active} />
+        <LiftChart series={series} active={active} maxWeek={maxWeek} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-          {liftSeries.map((s) => (
+          {series.map((s) => (
             <button key={s.id} className="pressable" onClick={() => toggleLift(s.id)} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999,
               border: `1px solid ${active.has(s.id) ? s.color : 'var(--line)'}`,
@@ -120,45 +125,48 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
 
       <section style={{ margin: desktop ? '24px 0 0' : '22px 20px 0' }}>
         <div className="ff-label" style={{ marginBottom: 12 }}>Séances passées</div>
-        <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 10, alignItems: 'start' } : { display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {sessions.map(({ day, s }) => {
-            const isExp = expanded === day.iso;
-            return (
-              <div key={day.iso} className="ff-card">
-                <button className="pressable" onClick={() => setExpanded(isExp ? null : day.iso)} style={{ width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 600 }}>{day.name}</div>
-                    <div className="ff-mono" style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 3, textTransform: 'capitalize' }}>{FF.fmtLong(day.date)} · {s.duration} min</div>
-                  </div>
-                  {(s.volume ?? 0) > 0 && <span className="ff-mono" style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>{((s.volume ?? 0) / 1000).toFixed(1)} t</span>}
-                  <FFIcon name="chevronD" size={14} color="var(--txt-2)" style={{ transform: isExp ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur-fast)' }} />
-                </button>
-                {isExp && (
-                  <div className="anim-fade-in" style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    {(s.exercises ?? []).slice(0, 5).map((ex) => (
-                      <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                        <span style={{ fontSize: 12.5, color: 'var(--txt-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</span>
-                        <span className="ff-mono" style={{ fontSize: 11.5, color: 'var(--txt-0)', flexShrink: 0 }}>
-                          {ex.sets.map((st) => st.weight ? `${st.weight}×${st.reps}` : st.reps).slice(0, 4).join(' · ')}
-                        </span>
-                      </div>
-                    ))}
-                    {s.prs && s.prs.length > 0 && (
-                      <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {s.prs.slice(0, 3).map((pr, i) => (
-                          <FFBadge key={i} color="var(--accent-3)" bg="rgba(57,255,20,0.08)">PR · {pr.exercise} {pr.next} kg</FFBadge>
-                        ))}
-                      </div>
-                    )}
-                    <button className="pressable ff-label" style={{ alignSelf: 'flex-start', marginTop: 6, padding: '8px 13px', borderRadius: 10, border: '1px solid var(--line)', color: 'var(--accent)', fontSize: 10.5 }}>
-                      ↻ Refaire cette séance
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {sessions.length === 0 ? (
+          <div className="ff-card" style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--txt-2)', fontSize: 13 }}>
+            Aucune séance loggée pour l’instant.<br />Termine ta première séance pour la voir ici.
+          </div>
+        ) : (
+          <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 10, alignItems: 'start' } : { display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sessions.map(({ day, session }) => {
+              const isExp = expanded === day.iso;
+              return (
+                <div key={day.iso} className="ff-card">
+                  <button className="pressable" onClick={() => setExpanded(isExp ? null : day.iso)} style={{ width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600 }}>{day.name}</div>
+                      <div className="ff-mono" style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 3, textTransform: 'capitalize' }}>{FF.fmtLong(day.date)} · {fmtMin(session.durationSec)}</div>
+                    </div>
+                    {session.volume > 0 && <span className="ff-mono" style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>{(session.volume / 1000).toFixed(1)} t</span>}
+                    <FFIcon name="chevronD" size={14} color="var(--txt-2)" style={{ transform: isExp ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur-fast)' }} />
+                  </button>
+                  {isExp && (
+                    <div className="anim-fade-in" style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {session.exercises.map((ex) => (
+                        <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <span style={{ fontSize: 12.5, color: 'var(--txt-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</span>
+                          <span className="ff-mono" style={{ fontSize: 11.5, color: 'var(--txt-0)', flexShrink: 0 }}>
+                            {ex.sets.map((st) => st.weight ? `${st.weight}×${st.reps}` : `${st.reps}`).slice(0, 4).join(' · ')}
+                          </span>
+                        </div>
+                      ))}
+                      {session.prs.length > 0 && (
+                        <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {session.prs.slice(0, 3).map((pr, i) => (
+                            <FFBadge key={i} color="var(--accent-3)" bg="rgba(57,255,20,0.08)">PR · {pr.exercise} {pr.next} kg</FFBadge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
      </div>
     </div>
