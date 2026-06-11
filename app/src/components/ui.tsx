@@ -264,22 +264,37 @@ export function RIRSelector({ value, onChange }: { value: number | null; onChang
   );
 }
 
-// ---------- placeholder imagerie exercice ----------
+// ---------- imagerie exercice : vraie démo (free-exercise-db) ou placeholder vivant ----------
 interface ExercisePlaceholderProps {
   label: string;
   height?: number | string;
   style?: CSSProperties;
+  /** frames de démo ; si présentes on les affiche (2 frames = animation crossfade) */
+  images?: string[];
 }
-export function ExercisePlaceholder({ label, height = 180, style }: ExercisePlaceholderProps) {
+export function ExercisePlaceholder({ label, height = 180, style, images }: ExercisePlaceholderProps) {
+  const hasImg = !!(images && images.length);
   return (
     <div className="ff-placeholder" style={{
       height, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden', ...style,
     }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(5,5,5,0.2), rgba(5,5,5,0.9))' }}></div>
-      <span className="ff-mono" style={{ position: 'relative', fontSize: 11, color: 'var(--txt-2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-        ▦ {label}
-      </span>
+      {hasImg && (
+        <>
+          <img src={images![0]} alt={label} loading="lazy" decoding="async" className="ff-demo-img" />
+          {images!.length > 1 && (
+            <img src={images![1]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="ff-demo-img ff-demo-anim" />
+          )}
+        </>
+      )}
+      <div style={{ position: 'absolute', inset: 0, background: hasImg
+        ? 'linear-gradient(180deg, rgba(5,5,5,0.45) 0%, rgba(5,5,5,0.2) 38%, rgba(5,5,5,0.93) 80%)'
+        : 'linear-gradient(180deg, rgba(5,5,5,0.2), rgba(5,5,5,0.9))' }}></div>
+      {!hasImg && (
+        <span className="ff-mono" style={{ position: 'relative', fontSize: 11, color: 'var(--txt-2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          ▦ {label}
+        </span>
+      )}
     </div>
   );
 }

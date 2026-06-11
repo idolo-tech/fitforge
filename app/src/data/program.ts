@@ -116,6 +116,47 @@ const DAY_TEMPLATES: Record<number, DayTemplate> = {
 };
 const TRAINING_WEEKDAYS = [1, 3, 5, 0]; // lun, mer, ven, dim
 
+// ---------- démos d'exercices : free-exercise-db (domaine public, CDN jsDelivr) ----------
+// Chaque exo du programme → identifiant du dataset. 2 images (début / fin du mouvement)
+// que l'UI fait alterner pour une démo animée. Absent ici → placeholder vivant en secours.
+const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises';
+const EX_DB_ID: Record<string, string> = {
+  'dev-incline': 'Barbell_Incline_Bench_Press_-_Medium_Grip',
+  'tirage-large': 'Wide-Grip_Lat_Pulldown',
+  'rowing-tbar': 'Lying_T-Bar_Row',
+  'dev-epaules': 'Dumbbell_Shoulder_Press',
+  'elev-lat': 'Side_Lateral_Raise',
+  'face-pull': 'Face_Pull',
+  'curl-ez': 'EZ-Bar_Curl',
+  'triceps-poulie': 'Triceps_Pushdown_-_Rope_Attachment',
+  'pompes': 'Pushups',
+  'superman-row': 'Superman',
+  'squats': 'Bodyweight_Squat',
+  'fentes': 'Bodyweight_Walking_Lunge',
+  'planche': 'Plank',
+  'releves-jambes': 'Hanging_Leg_Raise',
+  'squat-guide': 'Goblet_Squat',
+  'presse': 'Leg_Press',
+  'leg-curl': 'Lying_Leg_Curls',
+  'leg-ext': 'Leg_Extensions',
+  'tirage-neutre': 'Close-Grip_Front_Lat_Pulldown',
+  'rowing-machine': 'Leverage_High_Row',
+  'elev-lat-2': 'Side_Lateral_Raise',
+  'face-pull-er': 'Face_Pull',
+  'pompes-diamant': 'Push-Ups_-_Close_Triceps_Position',
+  'superman-3d': 'Superman',
+  'squats-lents': 'Bodyweight_Squat',
+  'fentes-statiques': 'Bodyweight_Walking_Lunge',
+  'gainage-lateral': 'Side_Bridge',
+  'dead-bug': 'Dead_Bug',
+  'etirements': 'Quad_Stretch',
+};
+/** URLs des frames de démo pour un exo du programme (vide si non mappé). */
+export function exerciseImages(exId: string): string[] {
+  const dbId = EX_DB_ID[exId];
+  return dbId ? [`${MEDIA_BASE}/${dbId}/0.jpg`, `${MEDIA_BASE}/${dbId}/1.jpg`] : [];
+}
+
 export function repsRange(reps: string | number): [number, number] | null {
   const m = String(reps).match(/^(\d+)\s*-\s*(\d+)$/);
   if (m) return [+m[1], +m[2]];
@@ -135,7 +176,7 @@ for (let w = 1; w <= 12; w++) {
     return {
       id: `w${w}-d${wd}`, week: w, weekday: wd, date, iso: fmtISO(date),
       name: tpl.name, short: tpl.short, location: tpl.location, cardio: tpl.cardio,
-      exercises: tpl.exercises.map((ex) => ({ ...ex })),
+      exercises: tpl.exercises.map((ex) => ({ ...ex, images: exerciseImages(ex.id) })),
     };
   });
   weeks.push({ number: w, monday, phase: phaseOfWeek(w), days });

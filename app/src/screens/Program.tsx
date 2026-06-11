@@ -33,8 +33,12 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
             <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 13px', background: 'var(--bg-2)', borderRadius: 13 }}>
               <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                 className="ff-placeholder pressable" aria-label={`Voir la démo : ${ex.name}`}
-                style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                <FFIcon name="play" size={16} color="var(--accent)" />
+                style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                {ex.images?.[0] && (
+                  <img src={ex.images[0]} alt="" loading="lazy" decoding="async"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(0.25) brightness(0.62)' }} />
+                )}
+                <FFIcon name="play" size={16} color="var(--accent)" style={{ position: 'relative' }} />
               </a>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</div>

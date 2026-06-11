@@ -309,3 +309,21 @@ input { font-family: inherit; }
   );
   animation: ff-sheen calc(7s * var(--speed)) ease-in-out infinite;
 }
+
+/* real exercise demo frames — tuned to sit on the dark theme */
+.ff-demo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  filter: grayscale(0.3) contrast(1.06) brightness(0.84) saturate(1.05);
+}
+/* second frame crossfades over the first → the figure "moves" through the rep */
+.ff-demo-anim { animation: ff-cross calc(3.4s * var(--speed)) ease-in-out infinite; }
+@keyframes ff-cross {
+  0%, 40%  { opacity: 0; }
+  50%, 90% { opacity: 1; }
+  100%     { opacity: 0; }
+}

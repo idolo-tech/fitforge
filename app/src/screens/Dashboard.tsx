@@ -41,6 +41,7 @@ function HeroSeance({ layout, data, onStart, desktop = false }: { layout: string
   const act = actionableDay(data);
   const day = act.day;
   const nEx = day.exercises.length;
+  const heroImages = day.exercises.find((e) => e.images && e.images.length)?.images;
   const m = desktop ? { margin: 0 } : undefined;
 
   const label =
@@ -83,7 +84,7 @@ function HeroSeance({ layout, data, onStart, desktop = false }: { layout: string
   if (layout === 'Split') {
     return (
       <section className="ff-card anim-fade-up" style={{ margin: '14px 20px 0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '104px 1fr', ...m }} aria-label="Séance">
-        <ExercisePlaceholder label="visuel" height="100%" style={{ borderRight: '1px solid var(--line)' }} />
+        <ExercisePlaceholder label="visuel" images={heroImages} height="100%" style={{ borderRight: '1px solid var(--line)' }} />
         <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="ff-label" style={{ color: 'var(--accent)' }}>{label}</div>
           <h2 className="ff-display" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.12 }}>{day.name}</h2>
@@ -97,7 +98,7 @@ function HeroSeance({ layout, data, onStart, desktop = false }: { layout: string
   // Immersif (défaut)
   return (
     <section className="anim-fade-up" style={{ margin: desktop ? 0 : '14px 20px 0', borderRadius: 'var(--r-lg)', overflow: 'hidden', position: 'relative', border: '1px solid var(--line)', ...m }} aria-label="Séance">
-      <ExercisePlaceholder label={`séance — ${day.short.toLowerCase()}`} height={desktop ? 360 : 290} />
+      <ExercisePlaceholder label={`séance — ${day.short.toLowerCase()}`} images={heroImages} height={desktop ? 360 : 290} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(5,5,5,0.1) 20%, rgba(5,5,5,0.92) 78%)' }}></div>
       <div style={{ position: 'absolute', inset: 0, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 12 }}>
         <div className="ff-label" style={{ color: 'var(--accent)' }}>{label}</div>
