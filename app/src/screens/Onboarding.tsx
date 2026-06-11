@@ -163,7 +163,7 @@ export function OnboardingScreen({ onDone, desktop = false }: { onDone: (p: Onbo
             </header>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <label className="ff-label" htmlFor="ob-name">Ton prénom</label>
-              <input id="ob-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="Alex"
+              <input id="ob-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="Ton prénom"
                 style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 14, padding: '16px 18px', fontSize: 18, color: 'var(--txt-0)', outline: 'none', fontFamily: 'var(--font-display)', fontWeight: 600 }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
