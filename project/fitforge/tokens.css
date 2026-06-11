@@ -1,0 +1,188 @@
+/* ============================================================
+   FitForge — "Obsidian Forge" design tokens
+   Dark-only. Mobile-first. Glow intensity + animation speed
+   are driven by CSS vars set from the Tweaks panel:
+     --glow   : 0 → 1.5   (multiplier on neon glows)
+     --speed  : 0.5 → 2   (multiplier on durations; 2 = slower)
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg-0: #050505;
+  --bg-1: #0F0F0F;
+  --bg-2: #1A1A1A;
+  --accent: #00F0FF;
+  --accent-2: #FF3D71;
+  --accent-3: #39FF14;
+  --txt-0: #FFFFFF;
+  --txt-1: #8A8A8A;
+  --txt-2: #4A4A4A;
+  --line: #1F1F1F;
+  --glass: rgba(15, 15, 15, 0.85);
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --glow: 1;
+  --speed: 1;
+
+  --dur-fast: calc(0.15s * var(--speed));
+  --dur-med: calc(0.3s * var(--speed));
+  --dur-slow: calc(0.6s * var(--speed));
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  background: var(--bg-0);
+  color: var(--txt-0);
+  font-family: var(--font-body);
+  font-size: 16px;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+#root { height: 100%; }
+
+::selection { background: rgba(0, 240, 255, 0.25); }
+
+/* scrollbars — invisible but functional */
+::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+input { font-family: inherit; }
+
+/* ---------- type utilities ---------- */
+.ff-display { font-family: var(--font-display); }
+.ff-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.ff-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt-1);
+}
+
+/* ---------- glow utilities (scaled by --glow) ---------- */
+.glow-cyan { box-shadow: 0 0 calc(20px * var(--glow)) rgba(0, 240, 255, calc(0.18 * var(--glow))); }
+.glow-pink { box-shadow: 0 0 calc(20px * var(--glow)) rgba(255, 61, 113, calc(0.18 * var(--glow))); }
+.glow-green { box-shadow: 0 0 calc(20px * var(--glow)) rgba(57, 255, 20, calc(0.18 * var(--glow))); }
+.text-glow-cyan { text-shadow: 0 0 calc(24px * var(--glow)) rgba(0, 240, 255, calc(0.55 * var(--glow))); }
+.text-glow-green { text-shadow: 0 0 calc(24px * var(--glow)) rgba(57, 255, 20, calc(0.5 * var(--glow))); }
+
+/* ---------- press feedback (spec: scale 0.97 + glow) ---------- */
+.pressable {
+  transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease,
+              background var(--dur-fast) ease, opacity var(--dur-fast) ease;
+}
+.pressable:active { transform: scale(0.96); }
+
+/* ---------- cards ---------- */
+.ff-card {
+  background: linear-gradient(180deg, var(--bg-1), #0A0A0A);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* ---------- keyframes ---------- */
+@keyframes ff-pulse-soft {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+@keyframes ff-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ff-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ff-flame {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.12) rotate(2deg); }
+}
+@keyframes ff-pr-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes ff-glow-pulse {
+  0%, 100% { opacity: calc(0.5 * var(--glow)); }
+  50% { opacity: calc(1 * var(--glow)); }
+}
+@keyframes ff-flash {
+  from { opacity: 0.55; }
+  to { opacity: 0; }
+}
+@keyframes ff-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes ff-confetti-fall {
+  from { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes ff-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ff-liquid-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.anim-fade-up { animation: ff-fade-up var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-in { animation: ff-fade-in var(--dur-med) ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- app shell: full viewport, content column ---------- */
+.ff-stage {
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: var(--bg-0);
+  overflow: hidden;
+}
+.ff-app {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+@media (min-width: 560px) {
+  .ff-app {
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+}
+
+/* striped placeholder for exercise imagery */
+.ff-placeholder {
+  background: repeating-linear-gradient(
+    135deg,
+    #0C0C0C 0px, #0C0C0C 14px,
+    #101010 14px, #101010 28px
+  );
+}
