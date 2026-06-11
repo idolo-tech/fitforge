@@ -63,7 +63,7 @@ export function ProfileScreen({ profile, onReplayOnboarding, desktop = false }: 
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
-     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '14px 32px 48px' } : undefined}>
+     <div className={desktop ? 'ff-fluid ff-stagger' : 'ff-stagger'} style={desktop ? { padding: '14px 32px 48px' } : undefined}>
       <header style={{ padding: desktop ? '6px 0 0' : '26px 20px 0', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div className="ff-display" style={{ width: 62, height: 62, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-2)', border: '1px solid var(--line)', fontSize: 20, fontWeight: 700, color: 'var(--accent)', boxShadow: '0 0 calc(20px * var(--glow)) rgba(0,240,255,0.18)' }}>
           {name.slice(0, 2).toUpperCase()}

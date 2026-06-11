@@ -80,7 +80,7 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
-     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
+     <div className={desktop ? 'ff-fluid ff-stagger' : 'ff-stagger'} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
       <header style={{ padding: desktop ? '18px 0 14px' : '26px 20px 14px' }}>
         <h1 className="ff-display" style={{ fontSize: 28, fontWeight: 700 }}>Journal</h1>
       </header>

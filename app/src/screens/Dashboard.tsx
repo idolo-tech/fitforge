@@ -241,7 +241,7 @@ export function DashboardScreen({ name, heroLayout, desktop = false, onStartWork
   if (desktop) {
     return (
       <div style={{ height: '100%', overflowY: 'auto' }}>
-        <div className="ff-fluid" style={{ padding: '10px 32px 48px' }}>
+        <div className="ff-fluid ff-stagger" style={{ padding: '10px 32px 48px' }}>
           <DashHeader name={name} data={data} desktop />
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, marginTop: 16, alignItems: 'start' }}>
             <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} desktop />
@@ -260,7 +260,7 @@ export function DashboardScreen({ name, heroLayout, desktop = false, onStartWork
   }
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', paddingBottom: 110 }}>
+    <div className="ff-stagger" style={{ height: '100%', overflowY: 'auto', paddingBottom: 110 }}>
       <DashHeader name={name} data={data} />
       <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} />
       <WeekCalendar data={data} />

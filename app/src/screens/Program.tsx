@@ -73,7 +73,7 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
-     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
+     <div className={desktop ? 'ff-fluid ff-stagger' : 'ff-stagger'} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
       <header style={{ padding: desktop ? '18px 0 4px' : '26px 20px 4px' }}>
         <h1 className="ff-display" style={{ fontSize: 28, fontWeight: 700 }}>Programme</h1>
         <p style={{ fontSize: 13, color: 'var(--txt-1)', marginTop: 6 }}>Carrure + Définition · 15 juin → 14 sept. 2026</p>

@@ -85,9 +85,23 @@ input { font-family: inherit; }
 /* ---------- press feedback (spec: scale 0.97 + glow) ---------- */
 .pressable {
   transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease,
-              background var(--dur-fast) ease, opacity var(--dur-fast) ease;
+              background var(--dur-fast) ease, opacity var(--dur-fast) ease,
+              filter var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 .pressable:active { transform: scale(0.96); }
+
+/* ---------- hover life (desktop / fine pointers only) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover { filter: brightness(1.12); }
+  .ff-card {
+    transition: transform var(--dur-fast) ease, border-color var(--dur-fast) ease,
+                box-shadow var(--dur-fast) ease;
+  }
+  .ff-card:hover {
+    transform: translateY(-2px);
+    border-color: #2C2C2C;
+  }
+}
 
 /* ---------- cards ---------- */
 .ff-card {
@@ -146,13 +160,36 @@ input { font-family: inherit; }
   from { opacity: 0; transform: translateX(46px); }
   to { opacity: 1; transform: translateX(0); }
 }
+@keyframes ff-ambient {
+  0%   { transform: translate3d(0, 0, 0) scale(1);      opacity: 0.7; }
+  50%  { transform: translate3d(2.5%, -2%, 0) scale(1.07); opacity: 1; }
+  100% { transform: translate3d(-2%, 1.5%, 0) scale(1.03); opacity: 0.82; }
+}
+@keyframes ff-sheen {
+  0%   { transform: translate3d(-22%, -14%, 0); opacity: 0; }
+  18%  { opacity: 1; }
+  55%  { opacity: 1; }
+  100% { transform: translate3d(26%, 12%, 0); opacity: 0; }
+}
 
 .anim-fade-up { animation: ff-fade-up var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-fade-in { animation: ff-fade-in var(--dur-med) ease both; }
 
+/* staggered entrance — direct children cascade in (MD: 30-50ms apart) */
+.ff-stagger > * { animation: ff-fade-up var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ff-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.ff-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.ff-stagger > *:nth-child(3) { animation-delay: 0.14s; }
+.ff-stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.ff-stagger > *:nth-child(5) { animation-delay: 0.26s; }
+.ff-stagger > *:nth-child(6) { animation-delay: 0.32s; }
+.ff-stagger > *:nth-child(7) { animation-delay: 0.38s; }
+.ff-stagger > *:nth-child(n+8) { animation-delay: 0.44s; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
@@ -177,6 +214,20 @@ input { font-family: inherit; }
   display: flex;
   flex-direction: column;
 }
+/* living "forge" atmosphere — slow drifting embers behind the main tabs.
+   Intensity follows the --glow tweak (0 = flat black). */
+.ff-app::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 30% at 16% 10%, rgba(0, 240, 255, calc(0.08 * var(--glow))), transparent 70%),
+    radial-gradient(40% 34% at 84% 16%, rgba(255, 61, 113, calc(0.06 * var(--glow))), transparent 70%),
+    radial-gradient(52% 44% at 50% 102%, rgba(57, 255, 20, calc(0.05 * var(--glow))), transparent 72%);
+  animation: ff-ambient calc(26s * var(--speed)) ease-in-out infinite alternate;
+}
 @media (min-width: 560px) {
   .ff-app {
     border-left: 1px solid var(--line);
@@ -193,6 +244,7 @@ input { font-family: inherit; }
 /* main scrollable region (sibling of the desktop top nav) */
 .ff-app-main {
   position: relative;
+  z-index: 1; /* above the ambient forge layer */
   flex: 1;
   min-height: 0;
 }
@@ -229,11 +281,31 @@ input { font-family: inherit; }
   gap: 16px;
 }
 
-/* striped placeholder for exercise imagery */
+/* living "forge" surface for exercise imagery placeholders:
+   ember-tinted base + a slow light sheen sweeping across it */
 .ff-placeholder {
-  background: repeating-linear-gradient(
-    135deg,
-    #0C0C0C 0px, #0C0C0C 14px,
-    #101010 14px, #101010 28px
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(78% 58% at 28% 16%, rgba(0, 240, 255, 0.10), transparent 62%),
+    radial-gradient(72% 66% at 84% 90%, rgba(255, 61, 113, 0.09), transparent 60%),
+    repeating-linear-gradient(
+      135deg,
+      #0C0C0C 0px, #0C0C0C 14px,
+      #101010 14px, #101010 28px
+    );
+}
+.ff-placeholder::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 38%,
+    rgba(0, 240, 255, calc(0.14 * var(--glow))) 47%,
+    rgba(57, 255, 20, calc(0.08 * var(--glow))) 50%,
+    transparent 60%
   );
+  animation: ff-sheen calc(7s * var(--speed)) ease-in-out infinite;
 }
