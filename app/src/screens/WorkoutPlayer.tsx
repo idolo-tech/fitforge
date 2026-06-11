@@ -234,6 +234,11 @@ export function WorkoutPlayer({ gesture, timerDesign, desktop = false, onFinish,
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <FFBadge>{ex.muscle}</FFBadge>
             <FFBadge>Cible : {ex.reps}{isWeighted ? ` × ${ex.target} kg` : ''}</FFBadge>
+            <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+              aria-label={`Voir la démo : ${ex.name}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.35)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+              <FFIcon name="play" size={12} /> Démo
+            </a>
             <span style={{ fontSize: 11.5, color: 'var(--txt-2)' }}>{ex.note}</span>
           </div>
         </div>

@@ -43,16 +43,19 @@ export function fmtShort(d: Date): string {
 export const PHASES: Phase[] = [
   { id: 'adaptation', name: 'Adaptation & Technique', weeks: [1, 4], rir: 'RIR 2-3',
     principle: 'Apprendre les mouvements, créer l’habitude, éviter les blessures.',
-    cardio: '15 min léger, focus respiration',
-    progression: 'Ne change pas les charges, concentre-toi sur la forme.' },
+    cardio: '15 min léger, focus sur la respiration',
+    progression: 'Ne change pas les charges, concentre-toi sur la forme.',
+    nutrition: 'Établir les bases : protéines à chaque repas, hydratation, sommeil 7-8 h.' },
   { id: 'volume', name: 'Prise de Volume', weeks: [5, 8], rir: 'RIR 1-2',
     principle: 'Ajouter du poids ou des reps progressivement.',
     cardio: '18-20 min, inclinaison 5-6%',
-    progression: 'En haut de la fourchette de reps → augmente légèrement la charge.' },
+    progression: 'En haut de la fourchette de reps sur 2 séances → augmente légèrement la charge.',
+    nutrition: '+200-300 kcal par rapport à ta maintenance, 1,8-2 g de protéines/kg.' },
   { id: 'definition', name: 'Carrure + Définition', weeks: [9, 12], rir: 'RIR 1',
     principle: 'Garder les charges lourdes, affiner l’alimentation.',
-    cardio: '20 min inclinaison 6%, ou HIIT 15 min optionnel',
-    progression: 'Maintien des charges, focus sur la contraction musculaire.' },
+    cardio: '20 min inclinaison 6%, ou 1 séance HIIT 15 min optionnelle',
+    progression: 'Maintien des charges, focus sur la contraction musculaire.',
+    nutrition: 'Légèrement sous maintenance (-100 à -200 kcal), protéines 2-2,2 g/kg, moins de sel le soir.' },
 ];
 const phaseOfWeek = (w: number): Phase => PHASES.find((p) => w >= p.weeks[0] && w <= p.weeks[1])!;
 
@@ -74,23 +77,23 @@ const DAY_TEMPLATES: Record<number, DayTemplate> = {
       { id: 'dev-incline', name: 'Développé incliné', muscle: 'Pectoraux', sets: 4, reps: '8-10', rest: 120, base: 40, inc: 2.5, note: 'Poitrine haute, contrôle la descente' },
       { id: 'tirage-large', name: 'Tirage vertical prise large', muscle: 'Dos', sets: 4, reps: '8-12', rest: 90, base: 50, inc: 2.5, note: 'Coudes vers le bas, squeeze en haut' },
       { id: 'rowing-tbar', name: 'Rowing assis / T-Bar', muscle: 'Dos', sets: 4, reps: '10', rest: 90, base: 45, inc: 2.5, note: 'Dos droit, tire vers le nombril' },
-      { id: 'dev-epaules', name: 'Développé épaules', muscle: 'Épaules', sets: 3, reps: '8-10', rest: 90, base: 26, inc: 2.5, note: 'Pleine amplitude, pas de triche' },
+      { id: 'dev-epaules', name: 'Développé épaules (haltères ou barre)', muscle: 'Épaules', sets: 3, reps: '8-10', rest: 90, base: 26, inc: 2.5, note: 'Pleine amplitude, pas de triche' },
       { id: 'elev-lat', name: 'Élévations latérales', muscle: 'Épaules', sets: 3, reps: '18-20', rest: 60, base: 8, inc: 1, note: 'Coudes légèrement fléchis, monte à 90°' },
       { id: 'face-pull', name: 'Face pull', muscle: 'Épaules post.', sets: 3, reps: '18-20', rest: 60, base: 25, inc: 1, note: 'Postérieur épaules + posture' },
       { id: 'curl-ez', name: 'Curl biceps barre EZ', muscle: 'Biceps', sets: 3, reps: '10-12', rest: 60, base: 25, inc: 1, note: 'Pas de balancement' },
-      { id: 'triceps-poulie', name: 'Triceps poulie haute', muscle: 'Triceps', sets: 3, reps: '10-12', rest: 60, base: 30, inc: 1, note: 'Coudes fixes le long du corps' },
+      { id: 'triceps-poulie', name: 'Triceps poulie haute / barre EZ', muscle: 'Triceps', sets: 3, reps: '10-12', rest: 60, base: 30, inc: 1, note: 'Coudes fixes le long du corps' },
     ],
     cardio: 'Tapis 20 min · 5,5-6,5 km/h · inclinaison 4-6%' },
   3: { // Mercredi — maison
     name: 'Jambes + Haut du corps + Core', short: 'Full body maison', location: 'Maison',
     exercises: [
-      { id: 'pompes', name: 'Pompes', muscle: 'Pectoraux', sets: 4, reps: 'Max -2', rest: 90, base: null, inc: 0, note: 'Normales ou archer · garde 2 reps en réserve' },
+      { id: 'pompes', name: 'Pompes (normales ou archer)', muscle: 'Pectoraux', sets: 4, reps: 'Max -2', rest: 90, base: null, inc: 0, note: 'RIR 3 — garde 2 reps en réserve (phase 1)' },
       { id: 'pike-pushup', name: 'Pike push-up', muscle: 'Épaules', sets: 3, reps: '8-12', rest: 90, base: null, inc: 0, note: 'Fesses en l’air, descente contrôlée' },
       { id: 'superman-row', name: 'Superman / Row sac à dos', muscle: 'Dos', sets: 3, reps: '12-15', rest: 60, base: null, inc: 0, note: 'Travail du dos sans matériel' },
       { id: 'squats', name: 'Squats', muscle: 'Quadriceps', sets: 4, reps: '15-20', rest: 90, base: null, inc: 0, note: 'Profonds, genoux alignés orteils' },
-      { id: 'fentes', name: 'Fentes avant', muscle: 'Jambes', sets: 3, reps: '12/jambe', rest: 60, base: null, inc: 0, note: 'Torse droit, pas de balancement' },
+      { id: 'fentes', name: 'Fentes avant ou alternées', muscle: 'Jambes', sets: 3, reps: '12/jambe', rest: 60, base: null, inc: 0, note: 'Torse droit, pas de balancement' },
       { id: 'planche', name: 'Gainage planche', muscle: 'Core', sets: 3, reps: '40-60 s', rest: 60, base: null, inc: 0, note: 'Corps droit comme une planche' },
-      { id: 'releves-jambes', name: 'Relevés de jambes', muscle: 'Core', sets: 3, reps: '15', rest: 60, base: null, inc: 0, note: 'Bas du ventre, pas d’élan' },
+      { id: 'releves-jambes', name: 'Relevés de jambes suspendus ou au sol', muscle: 'Core', sets: 3, reps: '15', rest: 60, base: null, inc: 0, note: 'Bas du ventre, pas d’élan' },
     ],
     cardio: 'Marche rapide 30 min · allure soutenue' },
   5: { // Vendredi — salle
@@ -114,10 +117,11 @@ const DAY_TEMPLATES: Record<number, DayTemplate> = {
       { id: 'superman-3d', name: 'Superman 3D', muscle: 'Dos', sets: 3, reps: '12', rest: 60, base: null, inc: 0, note: 'Bras en Y, T, W pour tout le dos' },
       { id: 'squats-lents', name: 'Squats lents', muscle: 'Quadriceps', sets: 3, reps: '20', rest: 60, base: null, inc: 0, note: '3 s descente, 1 s pause en bas' },
       { id: 'fentes-statiques', name: 'Fentes statiques', muscle: 'Jambes', sets: 2, reps: '30 s/jambe', rest: 45, base: null, inc: 0, note: 'Tenue isométrique' },
-      { id: 'gainage-lateral', name: 'Gainage latéral', muscle: 'Core', sets: 3, reps: '30-45 s', rest: 45, base: null, inc: 0, note: 'Hanche haute, pas de relâchement' },
+      { id: 'gainage-lateral', name: 'Gainage latéral', muscle: 'Core', sets: 3, reps: '30-45 s/côté', rest: 45, base: null, inc: 0, note: 'Hanche haute, pas de relâchement' },
       { id: 'dead-bug', name: 'Dead bug', muscle: 'Core', sets: 3, reps: '10/côté', rest: 45, base: null, inc: 0, note: 'Lombaires plaquées au sol' },
+      { id: 'etirements', name: 'Étirements dynamiques + statiques', muscle: 'Mobilité', sets: 1, reps: '10-12 min', rest: 0, base: null, inc: 0, note: 'Épaules, hanches, dos, ischios' },
     ],
-    cardio: 'Étirements 10-12 min + marche lente 30 min' },
+    cardio: 'Marche lente 30 min · récupération active, pas de pression' },
 };
 const TRAINING_WEEKDAYS = [1, 3, 5, 0]; // lun, mer, ven, dim
 
@@ -275,6 +279,41 @@ export const user: User = {
   name: 'Alex', initials: 'AX', weight: 71.2, height: 178,
   goal: 'Prise de muscle', proteinGoal: 140,
 };
+
+// ---------- contenu de référence (issu du PDF) ----------
+export const PROGRAM_GOAL: string[] = [
+  '+2 à +4 kg de muscle / progression physique',
+  'Épaules et dos plus larges, taille plus propre',
+  'Visage légèrement plus sec',
+];
+
+export const NUTRITION_KEY: { k: string; v: string }[] = [
+  { k: 'Protéines', v: '1,8-2,2 g/kg de poids corporel (70 kg → 130-150 g/jour)' },
+  { k: 'Glucides', v: 'propres, autour de l’entraînement' },
+  { k: 'À éviter', v: 'sucre, soda, fast-food, sel le soir' },
+  { k: 'Hydratation', v: '2,5-3 L d’eau / jour' },
+  { k: 'Sommeil', v: '7-8 h minimum' },
+];
+
+export const PROGRESSION_RULE =
+  'Quand tu atteins facilement le haut de la fourchette de reps sur 2 séances consécutives, augmente la charge de 2,5-5 % (ex : 20 kg → 22,5 kg).';
+
+export const TIPS: { title: string; text: string }[] = [
+  { title: 'Technique > Ego', text: 'Mieux vaut 8 reps parfaites que 12 reps bancales. La qualité construit le muscle, pas la quantité de poids sur la barre.' },
+  { title: 'Le dos = la carrure', text: 'Les épaules larges c’est bien, mais un dos épais et large crée la forme en V. Ne néglige jamais le tirage et le rowing.' },
+  { title: 'Consistance > Intensité', text: '4 séances par semaine pendant 3 mois = 48 séances. C’est ça qui fait la différence, pas une séance à 110 %.' },
+];
+
+export const FACE_TIPS: string[] = [
+  'Moins de sel le soir (arrête à 19 h)',
+  'Dormir suffisamment (le manque de sommeil gonfle le visage)',
+  'Cardio léger régulier',
+  'Hydratation constante',
+];
+
+/** Lien démonstration : recherche vidéo ciblée sur le nom de l'exercice. */
+export const exerciseDemoUrl = (name: string): string =>
+  `https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' technique musculation')}`;
 
 export const completedCount = completedSessions.length;
 export const totalVolume = completedSessions.reduce((a, [, s]) => a + (s.volume || 0), 0);

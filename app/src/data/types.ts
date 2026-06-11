@@ -11,6 +11,8 @@ export interface Phase {
   principle: string;
   cardio: string;
   progression: string;
+  /** consigne nutrition propre à la phase (issue du PDF) */
+  nutrition: string;
 }
 
 /** Exercise template + resolved instance (target weight for a given week). */

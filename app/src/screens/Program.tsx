@@ -29,16 +29,22 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 22px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {day.exercises.map((ex) => (
             <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 13px', background: 'var(--bg-2)', borderRadius: 13 }}>
-              <div className="ff-placeholder" style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 9, color: 'var(--txt-2)' }} className="ff-mono">GIF</span>
-              </div>
+              <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="ff-placeholder pressable" aria-label={`Voir la démo : ${ex.name}`}
+                style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <FFIcon name="play" size={16} color="var(--accent)" />
+              </a>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</div>
                 <div className="ff-mono" style={{ fontSize: 11.5, color: 'var(--txt-1)', marginTop: 2 }}>
                   {ex.sets} × {ex.reps}{ex.target ? ` · ${ex.target} kg` : ''}
                 </div>
               </div>
-              <span style={{ fontSize: 10.5, color: 'var(--txt-2)' }}>{ex.muscle}</span>
+              <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="ff-label pressable" aria-label={`Voir la démo : ${ex.name}`}
+                style={{ fontSize: 9.5, color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 8, padding: '5px 8px', flexShrink: 0, textDecoration: 'none' }}>
+                ▶ DÉMO
+              </a>
             </div>
           ))}
           <div style={{ fontSize: 12, color: 'var(--txt-2)', padding: '4px 2px' }} className="ff-mono">+ {day.cardio}</div>
@@ -70,15 +76,29 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
         <p style={{ fontSize: 13, color: 'var(--txt-1)', marginTop: 6 }}>Carrure + Définition · 15 juin → 14 sept. 2026</p>
       </header>
 
+      {/* objectif */}
+      <section className="ff-card" style={{ margin: desktop ? '14px 0 0' : '14px 20px 0', padding: 16 }}>
+        <div className="ff-label" style={{ color: 'var(--accent)', marginBottom: 10 }}>Objectif</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {FF.PROGRAM_GOAL.map((g) => (
+            <div key={g} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ color: 'var(--accent)', fontSize: 13, lineHeight: '20px' }}>▸</span>
+              <span style={{ fontSize: 13.5, color: 'var(--txt-0)', lineHeight: 1.45 }}>{g}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* phases */}
       <div style={{ display: 'flex', gap: 8, padding: desktop ? '14px 0 4px' : '14px 20px 4px', overflowX: 'auto' }}>
         {FF.PHASES.map((p, i) => {
           const active = currentWeek >= p.weeks[0] && currentWeek <= p.weeks[1];
           return (
-            <div key={p.id} className="ff-card" style={{ minWidth: 158, padding: 13, flexShrink: 0, borderColor: active ? 'rgba(0,240,255,0.3)' : 'var(--line)', boxShadow: active ? '0 0 calc(16px * var(--glow)) rgba(0,240,255,0.08)' : 'none' }}>
+            <div key={p.id} className="ff-card" style={{ minWidth: 210, maxWidth: 240, padding: 13, flexShrink: 0, borderColor: active ? 'rgba(0,240,255,0.3)' : 'var(--line)', boxShadow: active ? '0 0 calc(16px * var(--glow)) rgba(0,240,255,0.08)' : 'none' }}>
               <div className="ff-label" style={{ fontSize: 9.5, color: active ? 'var(--accent)' : 'var(--txt-2)' }}>Phase {i + 1} · S{p.weeks[0]}-{p.weeks[1]}</div>
               <div className="ff-display" style={{ fontSize: 14, fontWeight: 600, marginTop: 5 }}>{p.name}</div>
               <div className="ff-mono" style={{ fontSize: 10.5, color: 'var(--txt-1)', marginTop: 4 }}>{p.rir}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--txt-2)', marginTop: 8, lineHeight: 1.4 }}>{p.nutrition}</div>
             </div>
           );
         })}
@@ -142,6 +162,51 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
             </div>
           );
         })}
+      </div>
+
+      {/* alimentation + conseils */}
+      <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14, marginTop: 24, alignItems: 'start' } : undefined}>
+        {/* alimentation */}
+        <section className="ff-card" style={{ margin: desktop ? 0 : '24px 20px 0', padding: 18 }}>
+          <div className="ff-label" style={{ color: 'var(--accent)', marginBottom: 14 }}>Alimentation clé</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            {FF.NUTRITION_KEY.map((n) => (
+              <div key={n.k} style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
+                <span className="ff-display" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--txt-0)', minWidth: 86, flexShrink: 0 }}>{n.k}</span>
+                <span style={{ fontSize: 12.5, color: 'var(--txt-1)', lineHeight: 1.45 }}>{n.v}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* conseils */}
+        <section className="ff-card" style={{ margin: desktop ? 0 : '14px 20px 0', padding: 18 }}>
+          <div className="ff-label" style={{ color: 'var(--accent)', marginBottom: 14 }}>Conseils pour réussir</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(57,255,20,0.05)', border: '1px solid rgba(57,255,20,0.2)' }}>
+              <div className="ff-label" style={{ fontSize: 10, color: 'var(--accent-3)', marginBottom: 6 }}>Règle de progression · Phase 2 & 3</div>
+              <div style={{ fontSize: 12.5, color: 'var(--txt-0)', lineHeight: 1.5 }}>{FF.PROGRESSION_RULE}</div>
+            </div>
+            {FF.TIPS.map((t) => (
+              <div key={t.title}>
+                <div className="ff-display" style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--accent)', marginBottom: 4 }}>{t.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--txt-1)', lineHeight: 1.5 }}>{t.text}</div>
+              </div>
+            ))}
+            <div>
+              <div className="ff-display" style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--accent)', marginBottom: 6 }}>Le visage</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {FF.FACE_TIPS.map((f) => (
+                  <div key={f} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                    <span style={{ color: 'var(--txt-2)', fontSize: 12, lineHeight: '18px' }}>▸</span>
+                    <span style={{ fontSize: 12.5, color: 'var(--txt-1)', lineHeight: 1.4 }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
      </div>
       {selDay && <DayDetail day={selDay} onClose={() => setSelDay(null)} onStart={() => { setSelDay(null); onStartWorkout(); }} />}
