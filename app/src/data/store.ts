@@ -27,15 +27,19 @@ export interface LoggedSession {
 export interface BodyEntry { date: string; value: number; }
 export interface MeasureEntry { date: string; value: number; }
 
+/** prescription du calque pour un exercice (écrite par l'IA) */
+export interface Prescription { targetWeight: number; reason?: string; }
+
 export interface StoreData {
   sessions: Record<string, LoggedSession>;   // par date ISO
   bodyWeight: BodyEntry[];
   measurements: Record<string, MeasureEntry[]>;
   lastWeights: Record<string, number>;        // exId -> dernière charge saisie
   notes: Record<string, string>;              // iso -> note de séance
+  plan: Record<string, Prescription>;         // exId -> prescription (calque IA)
 }
 
-const EMPTY: StoreData = { sessions: {}, bodyWeight: [], measurements: {}, lastWeights: {}, notes: {} };
+const EMPTY: StoreData = { sessions: {}, bodyWeight: [], measurements: {}, lastWeights: {}, notes: {}, plan: {} };
 
 function load(): StoreData {
   try {
@@ -102,6 +106,7 @@ export function hydrateFromCloud(cloud: StoreData): void {
     measurements,
     lastWeights: { ...data.lastWeights, ...cloud.lastWeights },
     notes: { ...data.notes, ...cloud.notes },
+    plan: { ...data.plan, ...cloud.plan },
   };
   if (JSON.stringify(merged) === JSON.stringify(data)) return; // pas de notification inutile
   data = merged;
@@ -152,6 +157,14 @@ export function seedBodyWeight(value: number): void {
 
 export function lastWeight(exId: string): number | null {
   return data.lastWeights[exId] ?? null;
+}
+
+/** prescription IA (calque) pour un exercice, ou null si le programme de base s'applique */
+export function prescription(exId: string): Prescription | null {
+  return data.plan[exId] ?? null;
+}
+export function prescribedWeight(exId: string): number | null {
+  return data.plan[exId]?.targetWeight ?? null;
 }
 
 // ---------- sélecteurs dérivés ----------
