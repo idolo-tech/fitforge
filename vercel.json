@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd app && npm install",
-  "buildCommand": "cd app && npm run build",
+  "buildCommand": "cd app && npx convex deploy --cmd 'npm run build' --cmd-url-env-var-name VITE_CONVEX_URL",
   "outputDirectory": "app/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
