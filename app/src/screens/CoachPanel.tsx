@@ -1,31 +1,36 @@
-/* FitForge — Coach IA : déclenche l'adaptation du programme (action Convex + AI SDK).
-   Rendu uniquement quand Convex/Auth est actif. */
+/* FitForge — Coach IA : affiche le dernier rapport (auto ou manuel) + bouton on-demand.
+   L'adaptation se déclenche automatiquement après chaque séance (cf. AuthGate). */
 import React from 'react';
-import { useAction } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { FFIcon } from '../components/icons';
 import { NeonButton } from '../components/ui';
 import { WEIGHTED_EXERCISES } from '../data/program';
 
-interface Adjustment { exId: string; targetWeight: number; reason: string; }
-interface Report { summary: string; adjustments: Adjustment[]; alerts: string[]; }
-
 const NAME: Record<string, string> = Object.fromEntries(WEIGHTED_EXERCISES.map((e) => [e.exId, e.name]));
 
+function ago(ts: number): string {
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h} h`;
+  return `il y a ${Math.floor(h / 24)} j`;
+}
+
 export function CoachPanel({ desktop = false }: { desktop?: boolean }) {
+  const report = useQuery(api.coach.latestReport);
   const adapt = useAction(api.ai.adaptProgram);
   const [loading, setLoading] = React.useState(false);
-  const [report, setReport] = React.useState<Report | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   async function run() {
     setLoading(true);
     setError(null);
     try {
-      const r = await adapt({ catalog: WEIGHTED_EXERCISES });
-      setReport(r as Report);
+      await adapt({ catalog: WEIGHTED_EXERCISES });
     } catch {
-      setError("L'adaptation a échoué (clé IA absente / quota / réseau). Réessaie.");
+      setError("L'adaptation a échoué (clé IA / quota / réseau). Réessaie.");
     } finally {
       setLoading(false);
     }
@@ -39,18 +44,26 @@ export function CoachPanel({ desktop = false }: { desktop?: boolean }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="ff-display" style={{ fontSize: 15, fontWeight: 700 }}>Coach IA</div>
-          <div style={{ fontSize: 11.5, color: 'var(--txt-1)' }}>Ajuste tes poids selon ta progression et tes notes</div>
+          <div style={{ fontSize: 11.5, color: 'var(--txt-1)' }}>S'adapte automatiquement après chaque séance</div>
         </div>
       </div>
 
       <NeonButton onClick={run} disabled={loading}>
-        {loading ? 'ANALYSE…' : 'ADAPTER MON PROGRAMME'}
+        {loading ? 'ANALYSE…' : 'ADAPTER MAINTENANT'}
       </NeonButton>
 
       {error && <div role="alert" style={{ fontSize: 12, color: 'var(--accent-2)', lineHeight: 1.4 }}>{error}</div>}
 
+      {report === null && !loading && (
+        <span style={{ fontSize: 12, color: 'var(--txt-2)' }}>Pas encore d'analyse. Termine une séance (ou clique ci-dessus) pour la première adaptation.</span>
+      )}
+
       {report && (
         <div className="anim-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+            <span className="ff-label">Dernière analyse</span>
+            <span className="ff-mono" style={{ fontSize: 10.5, color: 'var(--txt-2)' }}>{ago(report._creationTime)}</span>
+          </div>
           <p style={{ fontSize: 13, color: 'var(--txt-0)', lineHeight: 1.5 }}>{report.summary}</p>
 
           {report.alerts.length > 0 && (
@@ -78,7 +91,7 @@ export function CoachPanel({ desktop = false }: { desktop?: boolean }) {
               ))}
             </div>
           ) : (
-            <span style={{ fontSize: 12, color: 'var(--txt-2)' }}>Aucun changement proposé — continue comme ça. Logue plus de séances pour affiner.</span>
+            <span style={{ fontSize: 12, color: 'var(--txt-2)' }}>Aucun changement à la dernière analyse — continue comme ça.</span>
           )}
         </div>
       )}

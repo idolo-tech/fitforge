@@ -114,4 +114,14 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_ex", ["userId", "exId"]),
+
+  // rapports du Coach IA (historique des adaptations, le dernier est affiché)
+  coachReports: defineTable({
+    userId: v.string(),
+    summary: v.string(),
+    alerts: v.array(v.string()),
+    adjustments: v.array(
+      v.object({ exId: v.string(), targetWeight: v.number(), reason: v.string() }),
+    ),
+  }).index("by_user", ["userId"]),
 });

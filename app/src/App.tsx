@@ -105,9 +105,11 @@ interface FitForgeAppProps {
   authProfile?: Profile | null;
   onSaveProfile?: (p: Profile) => void | Promise<void>;
   onSignOut?: () => void;
+  /** appelé quand une séance est terminée (déclenche le Coach IA en arrière-plan) */
+  onSessionFinish?: () => void;
 }
 
-export default function FitForgeApp({ authMode = false, authProfile = null, onSaveProfile, onSignOut }: FitForgeAppProps = {}) {
+export default function FitForgeApp({ authMode = false, authProfile = null, onSaveProfile, onSignOut, onSessionFinish }: FitForgeAppProps = {}) {
   const [t, setTweak] = useTweaks(FF_TWEAK_DEFAULTS);
   const desktop = useIsDesktop();
 
@@ -175,7 +177,7 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
             timerDesign={t.timerDesign}
             desktop={desktop}
             onQuit={() => setWorkoutDay(null)}
-            onFinish={(s) => { setWorkoutDay(null); setSummary(s); }}
+            onFinish={(s) => { setWorkoutDay(null); setSummary(s); onSessionFinish?.(); }}
           />
         )}
 

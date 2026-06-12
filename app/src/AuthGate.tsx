@@ -1,12 +1,13 @@
 /* FitForge — gating d'authentification (Convex Auth).
    AuthLoading → écran de chargement · Unauthenticated → connexion ·
    Authenticated → app (profil chargé depuis le compte). */
-import { AuthLoading, Authenticated, Unauthenticated, useQuery, useMutation } from 'convex/react';
+import { AuthLoading, Authenticated, Unauthenticated, useQuery, useMutation, useAction } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
 import FitForgeApp from './App';
 import { ConvexSync } from './data/ConvexSync';
 import { resetLocalStore } from './data/store';
+import { WEIGHTED_EXERCISES } from './data/program';
 import { SignInScreen } from './screens/SignIn';
 import { ForgeLogo } from './screens/Onboarding';
 import type { Profile } from './screens/Profile';
@@ -22,6 +23,7 @@ function Boot() {
 function AuthedApp() {
   const profileDoc = useQuery(api.profile.get);
   const upsert = useMutation(api.profile.upsert);
+  const adapt = useAction(api.ai.adaptProgram);
   const { signOut } = useAuthActions();
 
   if (profileDoc === undefined) return <Boot />; // profil en cours de chargement
@@ -38,6 +40,7 @@ function AuthedApp() {
         authProfile={profile}
         onSaveProfile={async (p) => { await upsert({ name: p.name, weight: p.weight, height: p.height, goal: p.goal }); }}
         onSignOut={() => { void signOut().then(resetLocalStore); }}
+        onSessionFinish={() => { void adapt({ catalog: WEIGHTED_EXERCISES }).catch(() => {}); }}
       />
     </>
   );
