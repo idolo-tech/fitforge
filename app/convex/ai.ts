@@ -78,7 +78,7 @@ export const adaptProgram = action({
     });
 
     const { object } = await generateObject({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.5-flash"),
       schema,
       system:
         "Tu es un coach de musculation expert et prudent. Tu ajustes UNIQUEMENT les poids cibles d'un programme existant (jamais la structure). Surcharge progressive : si l'utilisateur termine ses séries en RIR >= 2 plusieurs fois, augmente légèrement (2,5 kg sur les petits mouvements, 5 kg sur les gros). Si RIR 0-1 ou échec, ne monte pas (maintien ou légère baisse). Prends en compte les notes (douleurs, fatigue, sommeil) pour la sécurité : propose un maintien/deload en cas de surmenage. N'ajuste que les exercices avec assez d'historique. Utilise l'exId EXACT. Réponds en français.",
@@ -92,6 +92,12 @@ export const adaptProgram = action({
     for (const a of valid) {
       await ctx.runMutation(api.plan.set, { exId: a.exId, targetWeight: a.targetWeight, reason: a.reason });
     }
+    // persiste le rapport (affiché dans le Coach, y compris pour les runs auto)
+    await ctx.runMutation(api.coach.saveReport, {
+      summary: object.summary,
+      alerts: object.alerts,
+      adjustments: valid,
+    });
 
     return { adjustments: valid, alerts: object.alerts, summary: object.summary };
   },

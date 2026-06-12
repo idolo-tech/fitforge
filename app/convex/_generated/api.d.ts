@@ -11,6 +11,7 @@
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
 import type * as body from "../body.js";
+import type * as coach from "../coach.js";
 import type * as http from "../http.js";
 import type * as measurements from "../measurements.js";
 import type * as notes from "../notes.js";
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   auth: typeof auth;
   body: typeof body;
+  coach: typeof coach;
   http: typeof http;
   measurements: typeof measurements;
   notes: typeof notes;
