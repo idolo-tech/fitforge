@@ -2,7 +2,7 @@
 import React from 'react';
 import { FFIcon } from './components/icons';
 import type { IconName } from './components/icons';
-import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSlider } from './components/TweaksPanel';
+import { useTweaks } from './components/TweaksPanel';
 import { useIsDesktop } from './hooks/useMediaQuery';
 import { SplashScreen, OnboardingScreen } from './screens/Onboarding';
 import type { OnboardingResult } from './screens/Onboarding';
@@ -114,7 +114,7 @@ interface FitForgeAppProps {
 }
 
 export default function FitForgeApp({ authMode = false, authProfile = null, onSaveProfile, onSignOut, onSessionFinish }: FitForgeAppProps = {}) {
-  const [t, setTweak] = useTweaks(FF_TWEAK_DEFAULTS);
+  const [t] = useTweaks(FF_TWEAK_DEFAULTS);
   const desktop = useIsDesktop();
 
   const [profile, setProfile] = React.useState<Profile | null>(() => (authMode ? authProfile : loadProfile()));
@@ -194,16 +194,6 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
           <SummaryScreen session={summary} desktop={desktop} onShare={() => setShare(true)} onHome={() => { setSummary(null); setTab('dashboard'); }} />
         )}
         {share && summary && <ShareCard session={summary} onClose={() => setShare(false)} />}
-
-        <TweaksPanel>
-          <TweakSection label="Explorations UX" />
-          <TweakRadio label="Timer de repos" value={t.timerDesign} options={['Ring', 'Liquide', 'Minimal']} onChange={(v) => setTweak('timerDesign', v)} />
-          <TweakRadio label="Hero dashboard" value={t.heroLayout} options={['Immersif', 'Compact', 'Split']} onChange={(v) => setTweak('heroLayout', v)} />
-          <TweakRadio label="Validation série" value={t.gesture} options={['Swipe', 'Bouton']} onChange={(v) => setTweak('gesture', v)} />
-          <TweakSection label="Ambiance" />
-          <TweakSlider label="Intensité du glow" value={t.glow} min={0} max={150} step={5} unit="%" onChange={(v) => setTweak('glow', v)} />
-          <TweakSlider label="Vitesse animations" value={t.speed} min={50} max={200} step={10} unit="%" onChange={(v) => setTweak('speed', v)} />
-        </TweaksPanel>
       </div>
     </div>
   );
