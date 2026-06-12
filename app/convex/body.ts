@@ -1,10 +1,13 @@
-/* FitForge — poids corporel (équiv. addBodyWeight, upsert par date) */
+/* FitForge — poids corporel (upsert par date), rattaché au compte connecté */
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
     const rows = await ctx.db
       .query("bodyWeights")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -14,8 +17,10 @@ export const list = query({
 });
 
 export const add = mutation({
-  args: { userId: v.string(), date: v.string(), value: v.number() },
-  handler: async (ctx, { userId, date, value }) => {
+  args: { date: v.string(), value: v.number() },
+  handler: async (ctx, { date, value }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Non authentifié");
     const existing = await ctx.db
       .query("bodyWeights")
       .withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", date))

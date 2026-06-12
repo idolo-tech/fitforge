@@ -45,7 +45,7 @@ function AddValue({ placeholder, unit, onAdd }: { placeholder: string; unit: str
   );
 }
 
-export function ProfileScreen({ profile, onReplayOnboarding, desktop = false }: { profile: Profile; onReplayOnboarding: () => void; desktop?: boolean }) {
+export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, desktop = false }: { profile: Profile; onReplayOnboarding?: () => void; onSignOut?: () => void; desktop?: boolean }) {
   const data = useStore();
   const name = profile.name;
   const [selZone, setSelZone] = React.useState('shoulders');
@@ -167,10 +167,17 @@ export function ProfileScreen({ profile, onReplayOnboarding, desktop = false }: 
         </div>
       </section>
 
-      <div style={{ margin: desktop ? '18px 0 0' : '18px 20px 0', maxWidth: desktop ? 360 : undefined }}>
-        <button className="pressable" onClick={onReplayOnboarding} style={{ width: '100%', padding: '15px', borderRadius: 14, border: '1px solid var(--line)', color: 'var(--txt-1)', fontSize: 13.5, fontWeight: 600, background: 'var(--bg-1)' }}>
-          ↻ Revoir le splash & l’onboarding
-        </button>
+      <div style={{ margin: desktop ? '18px 0 0' : '18px 20px 0', maxWidth: desktop ? 360 : undefined, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {onReplayOnboarding && (
+          <button className="pressable" onClick={onReplayOnboarding} style={{ width: '100%', padding: '15px', borderRadius: 14, border: '1px solid var(--line)', color: 'var(--txt-1)', fontSize: 13.5, fontWeight: 600, background: 'var(--bg-1)' }}>
+            ↻ Revoir le splash & l’onboarding
+          </button>
+        )}
+        {onSignOut && (
+          <button className="pressable" onClick={onSignOut} aria-label="Se déconnecter" style={{ width: '100%', padding: '15px', borderRadius: 14, border: '1px solid rgba(255,61,113,0.3)', color: 'var(--accent-2)', fontSize: 13.5, fontWeight: 600, background: 'var(--bg-1)' }}>
+            Se déconnecter
+          </button>
+        )}
       </div>
      </div>
     </div>

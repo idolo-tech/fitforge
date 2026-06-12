@@ -1,24 +1,29 @@
-/* FitForge — mensurations (équiv. addMeasurement, upsert par zone + date) */
+/* FitForge — mensurations (upsert par zone + date), rattachées au compte connecté */
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) =>
-    await ctx.db
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
+    return await ctx.db
       .query("measurements")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect(),
+      .collect();
+  },
 });
 
 export const add = mutation({
   args: {
-    userId: v.string(),
     key: v.string(),
     date: v.string(),
     value: v.number(),
   },
-  handler: async (ctx, { userId, key, date, value }) => {
+  handler: async (ctx, { key, date, value }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Non authentifié");
     const existing = await ctx.db
       .query("measurements")
       .withIndex("by_user_key_date", (q) =>

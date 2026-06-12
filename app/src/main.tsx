@@ -1,24 +1,24 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConvexProvider, ConvexReactClient } from 'convex/react';
+import { ConvexReactClient } from 'convex/react';
+import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import './styles/tokens.css';
 import FitForgeApp from './App';
-import { ConvexSync } from './data/ConvexSync';
+import { AuthGate } from './AuthGate';
 
-// Convex est optionnel : tant que VITE_CONVEX_URL n'est pas défini
-// (avant `npx convex dev`), l'app tourne en mode 100% localStorage.
+// Convex est optionnel : sans VITE_CONVEX_URL, l'app tourne en mode 100%
+// localStorage (sans compte). Avec, on passe par l'authentification.
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
-
-const app = <FitForgeApp />;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {convex ? (
-      <ConvexProvider client={convex}>
-        <ConvexSync />
-        {app}
-      </ConvexProvider>
-    ) : app}
+      <ConvexAuthProvider client={convex}>
+        <AuthGate />
+      </ConvexAuthProvider>
+    ) : (
+      <FitForgeApp />
+    )}
   </StrictMode>,
 );
