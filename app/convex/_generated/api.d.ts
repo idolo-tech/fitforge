@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as body from "../body.js";
 import type * as http from "../http.js";
 import type * as measurements from "../measurements.js";
+import type * as photos from "../photos.js";
 import type * as profile from "../profile.js";
 import type * as sessions from "../sessions.js";
 
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   body: typeof body;
   http: typeof http;
   measurements: typeof measurements;
+  photos: typeof photos;
   profile: typeof profile;
   sessions: typeof sessions;
 }>;

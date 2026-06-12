@@ -84,4 +84,14 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_ex", ["userId", "exId"]),
+
+  // photos de progression (Convex File Storage)
+  photos: defineTable({
+    userId: v.string(),
+    angle: v.string(),            // 'face' | 'left' | 'right' | 'back'
+    date: v.string(),             // ISO date
+    storageId: v.id("_storage"),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_angle", ["userId", "angle"]),
 });

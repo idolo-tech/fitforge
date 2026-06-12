@@ -161,7 +161,7 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
               {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'journal' && <JournalScreen desktop={desktop} />}
-              {tab === 'profile' && profile && <ProfileScreen profile={profile} desktop={desktop} onReplayOnboarding={authMode ? undefined : replay} onSignOut={onSignOut} />}
+              {tab === 'profile' && profile && <ProfileScreen profile={profile} desktop={desktop} convexEnabled={authMode} onReplayOnboarding={authMode ? undefined : replay} onSignOut={onSignOut} />}
             </div>
           )}
 

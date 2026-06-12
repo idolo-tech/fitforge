@@ -2,6 +2,7 @@
 import React from 'react';
 import { FFIcon } from '../components/icons';
 import { Segmented, Sparkline } from '../components/ui';
+import { ProgressPhotos } from './ProgressPhotos';
 import { useStore, addBodyWeight, addMeasurement, measurementViews } from '../data/store';
 
 export interface Profile { name: string; weight: number; height: number; goal: string; }
@@ -45,7 +46,7 @@ function AddValue({ placeholder, unit, onAdd }: { placeholder: string; unit: str
   );
 }
 
-export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, desktop = false }: { profile: Profile; onReplayOnboarding?: () => void; onSignOut?: () => void; desktop?: boolean }) {
+export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, convexEnabled = false, desktop = false }: { profile: Profile; onReplayOnboarding?: () => void; onSignOut?: () => void; convexEnabled?: boolean; desktop?: boolean }) {
   const data = useStore();
   const name = profile.name;
   const [selZone, setSelZone] = React.useState('shoulders');
@@ -74,26 +75,27 @@ export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, desktop 
         </div>
       </header>
 
-      {/* photos de progression */}
-      <section style={{ margin: desktop ? '24px 0 0' : '24px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span className="ff-label">Photos de progression</span>
-          <button className="pressable" aria-label="Prendre une photo" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10, border: '1px solid var(--line)', color: 'var(--accent)', fontSize: 11.5, fontWeight: 600 }}>
-            <FFIcon name="camera" size={14} /> Capturer
-          </button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-          {ANGLES.map((a) => (
-            <div key={a} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="ff-placeholder" style={{ aspectRatio: '3/4', borderRadius: 10, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FFIcon name="camera" size={16} color="var(--txt-2)" />
+      {/* photos de progression : réelles (Convex) ou placeholder hors-ligne */}
+      {convexEnabled ? (
+        <ProgressPhotos desktop={desktop} />
+      ) : (
+        <section style={{ margin: desktop ? '24px 0 0' : '24px 20px 0' }}>
+          <div style={{ marginBottom: 12 }}>
+            <span className="ff-label">Photos de progression</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {ANGLES.map((a) => (
+              <div key={a} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div className="ff-placeholder" style={{ aspectRatio: '3/4', borderRadius: 10, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FFIcon name="camera" size={16} color="var(--txt-2)" />
+                </div>
+                <span className="ff-label" style={{ fontSize: 9, textAlign: 'center' }}>{a}</span>
               </div>
-              <span className="ff-label" style={{ fontSize: 9, textAlign: 'center' }}>{a}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 8 }}>Capture 4 angles aujourd’hui, puis compare au fil des semaines.</p>
-      </section>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 8 }}>Connecte-toi pour activer les photos de progression.</p>
+        </section>
+      )}
 
      <div style={desktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' } : undefined}>
       {/* mensurations */}
