@@ -17,6 +17,9 @@ import { seedBodyWeight } from './data/store';
 import { user as DEFAULT_USER } from './data/program';
 import type { SessionSummary, Day } from './data/types';
 
+// Recharts est lourd → l'écran Analyse est chargé à la demande (code-split)
+const AnalyseScreen = React.lazy(() => import('./screens/Analyse').then((m) => ({ default: m.AnalyseScreen })));
+
 const FF_TWEAK_DEFAULTS = {
   timerDesign: 'Ring',
   heroLayout: 'Immersif',
@@ -34,12 +37,13 @@ function loadProfile(): Profile | null {
   return null;
 }
 
-type Tab = 'dashboard' | 'program' | 'journal' | 'profile';
+type Tab = 'dashboard' | 'program' | 'journal' | 'analyse' | 'profile';
 
 const NAV_ITEMS: { id: Tab; icon: IconName; label: string }[] = [
   { id: 'dashboard', icon: 'home', label: 'Dashboard' },
   { id: 'program', icon: 'program', label: 'Programme' },
   { id: 'journal', icon: 'journal', label: 'Journal' },
+  { id: 'analyse', icon: 'chart', label: 'Analyse' },
   { id: 'profile', icon: 'profile', label: 'Profil' },
 ];
 
@@ -163,6 +167,11 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
               {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'journal' && <JournalScreen desktop={desktop} />}
+              {tab === 'analyse' && (
+                <React.Suspense fallback={<div style={{ padding: 48, textAlign: 'center', color: 'var(--txt-2)', fontSize: 13 }}>Chargement…</div>}>
+                  <AnalyseScreen desktop={desktop} />
+                </React.Suspense>
+              )}
               {tab === 'profile' && profile && <ProfileScreen profile={profile} desktop={desktop} convexEnabled={authMode} onReplayOnboarding={authMode ? undefined : replay} onSignOut={onSignOut} />}
             </div>
           )}
