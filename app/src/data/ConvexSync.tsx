@@ -41,14 +41,16 @@ export function ConvexSync() {
   const measures = useQuery(api.measurements.list, {});
   const lastWeights = useQuery(api.sessions.lastWeights, {});
   const notes = useQuery(api.notes.list, {});
+  const plan = useQuery(api.plan.list, {});
 
   const ready =
     sessions !== undefined && body !== undefined &&
-    measures !== undefined && lastWeights !== undefined && notes !== undefined;
+    measures !== undefined && lastWeights !== undefined &&
+    notes !== undefined && plan !== undefined;
   const pushedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!sessions || !body || !measures || !lastWeights || !notes) return;
+    if (!sessions || !body || !measures || !lastWeights || !notes || !plan) return;
 
     const cloud: StoreData = {
       sessions: Object.fromEntries(
@@ -66,6 +68,7 @@ export function ConvexSync() {
       }, {}),
       lastWeights,
       notes: Object.fromEntries(notes.map((n) => [n.iso, n.text])),
+      plan: Object.fromEntries(plan.map((p) => [p.exId, { targetWeight: p.targetWeight, reason: p.reason }])),
     };
 
     // migration unique : pousse vers le compte les données locales absentes
@@ -92,7 +95,7 @@ export function ConvexSync() {
 
     hydrateFromCloud(cloud);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, sessions, body, measures, lastWeights, notes]);
+  }, [ready, sessions, body, measures, lastWeights, notes, plan]);
 
   return null;
 }

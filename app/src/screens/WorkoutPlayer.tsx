@@ -4,7 +4,7 @@ import { FFIcon } from '../components/icons';
 import { NeonButton, FFBadge, Stepper, RIRSelector, ExercisePlaceholder } from '../components/ui';
 import { RestTimer } from './WorkoutExtras';
 import * as FF from '../data/program';
-import { lastWeight, saveSession, getData } from '../data/store';
+import { lastWeight, prescribedWeight, prescription, saveSession, getData } from '../data/store';
 import type { LoggedSession } from '../data/store';
 import type { SessionSummary, Day } from '../data/types';
 
@@ -94,7 +94,8 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
   const prevSession = React.useRef<LoggedSession | undefined>(
     Object.values(getData().sessions).filter((s) => s.dayId === day.id).sort((a, b) => b.iso.localeCompare(a.iso))[0],
   );
-  const prefill = (ex: typeof exercises[number]) => (ex.weighted ? (lastWeight(ex.id) ?? DEFAULT_LOAD) : 0);
+  // priorité au poids prescrit par l'IA (calque), sinon dernière charge, sinon défaut
+  const prefill = (ex: typeof exercises[number]) => (ex.weighted ? (prescribedWeight(ex.id) ?? lastWeight(ex.id) ?? DEFAULT_LOAD) : 0);
 
   const [exIdx, setExIdx] = React.useState(0);
   const [setNum, setSetNum] = React.useState(1);
@@ -109,6 +110,7 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
   const ex = exercises[exIdx];
   const isWeighted = ex.weighted;
   const range = FF.repsRange(ex.reps);
+  const presc = isWeighted ? prescription(ex.id) : null; // ajustement IA (calque)
 
   const [weight, setWeight] = React.useState(() => prefill(ex));
   const [reps, setReps] = React.useState(range ? range[0] : 10);
@@ -274,8 +276,9 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
           <h1 className="ff-display" style={{ fontSize: 27, fontWeight: 700, lineHeight: 1.1 }}>{ex.name}</h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <FFBadge>{ex.muscle}</FFBadge>
+            {presc && <FFBadge color="#000" bg="var(--accent)" style={{ fontWeight: 700 }}>Coach IA · {presc.targetWeight} kg</FFBadge>}
             <FFBadge>Objectif : {ex.reps} reps{isWeighted ? ' · charge libre' : ''}</FFBadge>
-            {isWeighted && lastWeight(ex.id) != null && <FFBadge>Dernière : {lastWeight(ex.id)} kg</FFBadge>}
+            {isWeighted && !presc && lastWeight(ex.id) != null && <FFBadge>Dernière : {lastWeight(ex.id)} kg</FFBadge>}
             <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
               aria-label={`Voir la démo : ${ex.name}`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.35)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
@@ -283,6 +286,9 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
             </a>
             <span style={{ fontSize: 11.5, color: 'var(--txt-2)' }}>{ex.note}</span>
           </div>
+          {presc?.reason && (
+            <span style={{ fontSize: 11.5, color: 'var(--accent)', lineHeight: 1.4 }}>↗ {presc.reason}</span>
+          )}
         </div>
       </div>
 

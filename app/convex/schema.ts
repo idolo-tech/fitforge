@@ -103,4 +103,15 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_iso", ["userId", "iso"]),
+
+  // calque d'ajustements : prescriptions de poids par exercice (écrit par l'IA).
+  // VIDE par défaut → le programme de base (program.ts) est respecté.
+  plan: defineTable({
+    userId: v.string(),
+    exId: v.string(),
+    targetWeight: v.number(),
+    reason: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_ex", ["userId", "exId"]),
 });

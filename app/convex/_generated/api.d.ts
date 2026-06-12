@@ -14,6 +14,7 @@ import type * as http from "../http.js";
 import type * as measurements from "../measurements.js";
 import type * as notes from "../notes.js";
 import type * as photos from "../photos.js";
+import type * as plan from "../plan.js";
 import type * as profile from "../profile.js";
 import type * as sessions from "../sessions.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   measurements: typeof measurements;
   notes: typeof notes;
   photos: typeof photos;
+  plan: typeof plan;
   profile: typeof profile;
   sessions: typeof sessions;
 }>;
