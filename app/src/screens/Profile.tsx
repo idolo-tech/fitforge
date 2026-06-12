@@ -3,6 +3,7 @@ import React from 'react';
 import { FFIcon } from '../components/icons';
 import { Segmented, Sparkline } from '../components/ui';
 import { ProgressPhotos } from './ProgressPhotos';
+import { CoachPanel } from './CoachPanel';
 import { useStore, addBodyWeight, addMeasurement, measurementViews } from '../data/store';
 
 export interface Profile { name: string; weight: number; height: number; goal: string; }
@@ -74,6 +75,9 @@ export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, convexEn
           <p style={{ fontSize: 12.5, color: 'var(--txt-1)', marginTop: 3 }}>{profile.goal} · {currentWeight} kg · {profile.height} cm</p>
         </div>
       </header>
+
+      {/* coach IA : adaptation du programme (Convex action + LLM) */}
+      {convexEnabled && <CoachPanel desktop={desktop} />}
 
       {/* photos de progression : réelles (Convex) ou placeholder hors-ligne */}
       {convexEnabled ? (

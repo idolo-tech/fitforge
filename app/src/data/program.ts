@@ -187,6 +187,15 @@ export const isoToWeek: Record<string, number> = {};
 allDays.forEach((d) => { isoToWeek[d.iso] = d.week; });
 export const PROGRAM_END = allDays[allDays.length - 1].date;
 
+/** catalogue des exercices à charge externe, dédupliqués (passé à l'IA) */
+export const WEIGHTED_EXERCISES: { exId: string; name: string; muscle: string; reps: string }[] = (() => {
+  const seen = new Map<string, { exId: string; name: string; muscle: string; reps: string }>();
+  for (const d of allDays) for (const ex of d.exercises) {
+    if (ex.weighted && !seen.has(ex.id)) seen.set(ex.id, { exId: ex.id, name: ex.name, muscle: ex.muscle, reps: ex.reps });
+  }
+  return [...seen.values()];
+})();
+
 // ---------- état temporel (réel) ----------
 const offset = daysBetween(PROGRAM_START, TODAY);
 export const programStarted = offset >= 0;
