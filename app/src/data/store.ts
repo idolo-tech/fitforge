@@ -32,9 +32,10 @@ export interface StoreData {
   bodyWeight: BodyEntry[];
   measurements: Record<string, MeasureEntry[]>;
   lastWeights: Record<string, number>;        // exId -> dernière charge saisie
+  notes: Record<string, string>;              // iso -> note de séance
 }
 
-const EMPTY: StoreData = { sessions: {}, bodyWeight: [], measurements: {}, lastWeights: {} };
+const EMPTY: StoreData = { sessions: {}, bodyWeight: [], measurements: {}, lastWeights: {}, notes: {} };
 
 function load(): StoreData {
   try {
@@ -69,6 +70,7 @@ export interface CloudBackend {
   saveSession: (s: LoggedSession) => Promise<unknown>;
   addBodyWeight: (date: string, value: number) => Promise<unknown>;
   addMeasurement: (key: string, date: string, value: number) => Promise<unknown>;
+  setNote: (iso: string, text: string) => Promise<unknown>;
 }
 let backend: CloudBackend | null = null;
 export function setCloudBackend(b: CloudBackend | null): void { backend = b; }
@@ -99,6 +101,7 @@ export function hydrateFromCloud(cloud: StoreData): void {
     bodyWeight: mergeDated(data.bodyWeight, cloud.bodyWeight),
     measurements,
     lastWeights: { ...data.lastWeights, ...cloud.lastWeights },
+    notes: { ...data.notes, ...cloud.notes },
   };
   if (JSON.stringify(merged) === JSON.stringify(data)) return; // pas de notification inutile
   data = merged;
@@ -130,6 +133,16 @@ export function addMeasurement(key: string, value: number): void {
   data = { ...data, measurements: { ...data.measurements, [key]: arr } };
   persist();
   backend?.addMeasurement(key, iso, value).catch(() => { /* offline */ });
+}
+
+/** note de séance d'un jour (texte vide = suppression) */
+export function setNote(iso: string, text: string): void {
+  const t = text.trim();
+  const notes = { ...data.notes };
+  if (t) notes[iso] = t; else delete notes[iso];
+  data = { ...data, notes };
+  persist();
+  backend?.setNote(iso, t).catch(() => { /* offline */ });
 }
 
 /** seed initial body weight from onboarding (only if none yet) */

@@ -3,7 +3,7 @@ import React from 'react';
 import { FFIcon } from '../components/icons';
 import { FFBadge, Segmented, ConsistencyHeatmap } from '../components/ui';
 import * as FF from '../data/program';
-import { useStore, weeklyVolume, liftSeries, sessionList } from '../data/store';
+import { useStore, weeklyVolume, liftSeries, sessionList, setNote } from '../data/store';
 import type { WeekVol, LiftSerie } from '../data/store';
 
 function fmtMin(sec: number): string {
@@ -59,6 +59,44 @@ function LiftChart({ series, active, maxWeek }: { series: LiftSerie[]; active: S
       })}
       {Array.from({ length: maxWeek }, (_, i) => i + 1).map((w) => <text key={w} x={px(w)} y={H - 4} textAnchor="middle" fill="#4A4A4A" fontSize="9" fontFamily="JetBrains Mono">S{w}</text>)}
     </svg>
+  );
+}
+
+/* ---------- note de séance (carnet) ---------- */
+function SessionNote({ iso, note }: { iso: string; note: string }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(note);
+  React.useEffect(() => { setDraft(note); }, [note]);
+
+  if (editing) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus rows={3}
+          placeholder="Ressenti, douleurs, observations…"
+          style={{ width: '100%', resize: 'vertical', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: 'var(--txt-0)', outline: 'none', fontFamily: 'var(--font-body)', lineHeight: 1.5 }} />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="pressable ff-label" onClick={() => { setDraft(note); setEditing(false); }}
+            style={{ padding: '7px 12px', borderRadius: 9, border: '1px solid var(--line)', color: 'var(--txt-1)', fontSize: 11 }}>Annuler</button>
+          <button className="pressable ff-label" onClick={() => { setNote(iso, draft); setEditing(false); }}
+            style={{ padding: '7px 12px', borderRadius: 9, border: '1px solid rgba(0,240,255,0.35)', color: 'var(--accent)', fontSize: 11 }}>Enregistrer</button>
+        </div>
+      </div>
+    );
+  }
+  if (note) {
+    return (
+      <button className="pressable" onClick={() => setEditing(true)} aria-label="Éditer la note"
+        style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 4, padding: '10px 12px', borderRadius: 12, background: 'var(--bg-2)', border: '1px solid var(--line)', textAlign: 'left', width: '100%' }}>
+        <FFIcon name="edit" size={13} color="var(--accent)" style={{ flexShrink: 0, marginTop: 1 }} />
+        <span style={{ fontSize: 12.5, color: 'var(--txt-1)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{note}</span>
+      </button>
+    );
+  }
+  return (
+    <button className="pressable ff-label" onClick={() => setEditing(true)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4, padding: '7px 11px', borderRadius: 9, border: '1px dashed var(--line)', color: 'var(--txt-2)', fontSize: 10.5, alignSelf: 'flex-start' }}>
+      <FFIcon name="edit" size={12} /> Ajouter une note
+    </button>
   );
 }
 
@@ -160,6 +198,7 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
                           ))}
                         </div>
                       )}
+                      <SessionNote iso={day.iso} note={data.notes[day.iso] || ''} />
                     </div>
                   )}
                 </div>

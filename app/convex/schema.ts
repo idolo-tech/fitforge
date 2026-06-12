@@ -94,4 +94,13 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_angle", ["userId", "angle"]),
+
+  // notes de séance / carnet (une note par jour, clé = iso)
+  notes: defineTable({
+    userId: v.string(),
+    iso: v.string(),
+    text: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_iso", ["userId", "iso"]),
 });

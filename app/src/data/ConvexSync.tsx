@@ -12,6 +12,7 @@ export function ConvexSync() {
   const saveMut = useMutation(api.sessions.save);
   const addBodyMut = useMutation(api.body.add);
   const addMeasureMut = useMutation(api.measurements.add);
+  const setNoteMut = useMutation(api.notes.set);
 
   const toSaveArgs = React.useCallback(
     (s: LoggedSession) => ({
@@ -29,23 +30,25 @@ export function ConvexSync() {
       saveSession: (s) => saveMut(toSaveArgs(s)),
       addBodyWeight: (date, value) => addBodyMut({ date, value }),
       addMeasurement: (key, date, value) => addMeasureMut({ key, date, value }),
+      setNote: (iso, text) => setNoteMut({ iso, text }),
     });
     return () => setCloudBackend(null);
-  }, [saveMut, addBodyMut, addMeasureMut, toSaveArgs]);
+  }, [saveMut, addBodyMut, addMeasureMut, setNoteMut, toSaveArgs]);
 
   // lectures réactives temps réel (rattachées au compte connecté)
   const sessions = useQuery(api.sessions.list, {});
   const body = useQuery(api.body.list, {});
   const measures = useQuery(api.measurements.list, {});
   const lastWeights = useQuery(api.sessions.lastWeights, {});
+  const notes = useQuery(api.notes.list, {});
 
   const ready =
     sessions !== undefined && body !== undefined &&
-    measures !== undefined && lastWeights !== undefined;
+    measures !== undefined && lastWeights !== undefined && notes !== undefined;
   const pushedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!sessions || !body || !measures || !lastWeights) return;
+    if (!sessions || !body || !measures || !lastWeights || !notes) return;
 
     const cloud: StoreData = {
       sessions: Object.fromEntries(
@@ -62,6 +65,7 @@ export function ConvexSync() {
         return acc;
       }, {}),
       lastWeights,
+      notes: Object.fromEntries(notes.map((n) => [n.iso, n.text])),
     };
 
     // migration unique : pousse vers le compte les données locales absentes
@@ -81,11 +85,14 @@ export function ConvexSync() {
           if (!seen.has(m.date)) addMeasureMut({ key, date: m.date, value: m.value }).catch(() => {});
         }
       }
+      for (const [iso, text] of Object.entries(local.notes)) {
+        if (!cloud.notes[iso]) setNoteMut({ iso, text }).catch(() => {});
+      }
     }
 
     hydrateFromCloud(cloud);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, sessions, body, measures, lastWeights]);
+  }, [ready, sessions, body, measures, lastWeights, notes]);
 
   return null;
 }
