@@ -27,6 +27,8 @@ export interface Exercise {
   /** true = external load (gym) → show weight input ; false = bodyweight / time */
   weighted: boolean;
   note: string;
+  /** demo frames (free-exercise-db, public domain). Empty/absent → living placeholder. */
+  images?: string[];
 }
 
 export interface Day {

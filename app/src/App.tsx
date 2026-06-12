@@ -142,7 +142,7 @@ export default function FitForgeApp() {
           {phase === 'onboarding' && <OnboardingScreen onDone={completeOnboarding} desktop={desktop} />}
 
           {phase === 'main' && (
-            <div key={tab} className="anim-fade-up" style={{ height: '100%' }} data-screen-label={tab}>
+            <div key={tab} style={{ height: '100%' }} data-screen-label={tab}>
               {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'journal' && <JournalScreen desktop={desktop} />}

@@ -264,7 +264,7 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
 
       {/* zone exercice */}
       <div key={exIdx} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', animation: 'ff-slide-ex var(--dur-med) cubic-bezier(0.22,1,0.36,1) both', ...pane }}>
-        <ExercisePlaceholder label={`démo — ${ex.name.toLowerCase()}`} height="100%" style={{ position: 'absolute', inset: 0 }} />
+        <ExercisePlaceholder label={`démo — ${ex.name.toLowerCase()}`} images={ex.images} height="100%" style={{ position: 'absolute', inset: 0 }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.35) 35%, rgba(5,5,5,0.96) 75%)' }}></div>
 
         <div style={{ position: 'relative', padding: '0 22px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -33,8 +33,12 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
             <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 13px', background: 'var(--bg-2)', borderRadius: 13 }}>
               <a href={FF.exerciseDemoUrl(ex.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                 className="ff-placeholder pressable" aria-label={`Voir la démo : ${ex.name}`}
-                style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                <FFIcon name="play" size={16} color="var(--accent)" />
+                style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                {ex.images?.[0] && (
+                  <img src={ex.images[0]} alt="" loading="lazy" decoding="async"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(0.25) brightness(0.62)' }} />
+                )}
+                <FFIcon name="play" size={16} color="var(--accent)" style={{ position: 'relative' }} />
               </a>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</div>
@@ -73,7 +77,7 @@ export function ProgramScreen({ onStartWorkout, desktop = false }: { onStartWork
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', paddingBottom: desktop ? 0 : 110 }}>
-     <div className={desktop ? 'ff-fluid' : undefined} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
+     <div className={desktop ? 'ff-fluid ff-stagger' : 'ff-stagger'} style={desktop ? { padding: '8px 32px 48px' } : undefined}>
       <header style={{ padding: desktop ? '18px 0 4px' : '26px 20px 4px' }}>
         <h1 className="ff-display" style={{ fontSize: 28, fontWeight: 700 }}>Programme</h1>
         <p style={{ fontSize: 13, color: 'var(--txt-1)', marginTop: 6 }}>Carrure + Définition · 15 juin → 14 sept. 2026</p>
