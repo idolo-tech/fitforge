@@ -6,6 +6,7 @@
    multi-appareil / l'auth plus tard. L'app locale utilise un id d'appareil.
    ============================================================ */
 import { defineSchema, defineTable } from "convex/server";
+import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 
 // sous-objets (cf. LoggedSession dans src/data/store.ts)
@@ -26,7 +27,11 @@ const pr = v.object({
 });
 
 export default defineSchema({
+  // tables d'authentification (@convex-dev/auth) : users, authSessions, etc.
+  ...authTables,
+
   // profil utilisateur (équiv. localStorage `fitforge_profile`)
+  // userId = id du compte (users._id), stocké en string pour compat données.
   profiles: defineTable({
     userId: v.string(),
     name: v.string(),

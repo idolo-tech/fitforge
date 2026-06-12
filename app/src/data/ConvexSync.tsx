@@ -1,46 +1,43 @@
 /* FitForge — pont Convex ↔ store local.
-   Monté sous ConvexProvider. Ne rend rien : il branche les mutations Convex
-   sur le store et fusionne les données du cloud dans le store synchrone. */
+   Monté sous ConvexAuthProvider + <Authenticated>. Ne rend rien : il branche
+   les mutations Convex sur le store et fusionne les données du cloud dans le
+   store synchrone. Le userId est dérivé côté serveur (getAuthUserId). */
 import React from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { getUserId } from './userId';
 import { getData, setCloudBackend, hydrateFromCloud } from './store';
 import type { StoreData, LoggedSession, BodyEntry, MeasureEntry } from './store';
 
 export function ConvexSync() {
-  const [userId] = React.useState(getUserId);
-
   const saveMut = useMutation(api.sessions.save);
   const addBodyMut = useMutation(api.body.add);
   const addMeasureMut = useMutation(api.measurements.add);
 
   const toSaveArgs = React.useCallback(
     (s: LoggedSession) => ({
-      userId,
       iso: s.iso, dayId: s.dayId, dayName: s.dayName,
       finishedAt: s.finishedAt, durationSec: s.durationSec,
       volume: s.volume, avgRir: s.avgRir,
       exercises: s.exercises, prs: s.prs,
     }),
-    [userId],
+    [],
   );
 
   // expose les mutations Convex au store (signatures CloudBackend)
   React.useEffect(() => {
     setCloudBackend({
       saveSession: (s) => saveMut(toSaveArgs(s)),
-      addBodyWeight: (date, value) => addBodyMut({ userId, date, value }),
-      addMeasurement: (key, date, value) => addMeasureMut({ userId, key, date, value }),
+      addBodyWeight: (date, value) => addBodyMut({ date, value }),
+      addMeasurement: (key, date, value) => addMeasureMut({ key, date, value }),
     });
     return () => setCloudBackend(null);
-  }, [userId, saveMut, addBodyMut, addMeasureMut, toSaveArgs]);
+  }, [saveMut, addBodyMut, addMeasureMut, toSaveArgs]);
 
-  // lectures réactives temps réel
-  const sessions = useQuery(api.sessions.list, { userId });
-  const body = useQuery(api.body.list, { userId });
-  const measures = useQuery(api.measurements.list, { userId });
-  const lastWeights = useQuery(api.sessions.lastWeights, { userId });
+  // lectures réactives temps réel (rattachées au compte connecté)
+  const sessions = useQuery(api.sessions.list, {});
+  const body = useQuery(api.body.list, {});
+  const measures = useQuery(api.measurements.list, {});
+  const lastWeights = useQuery(api.sessions.lastWeights, {});
 
   const ready =
     sessions !== undefined && body !== undefined &&
@@ -67,7 +64,7 @@ export function ConvexSync() {
       lastWeights,
     };
 
-    // migration unique : pousse vers le cloud les données locales absentes
+    // migration unique : pousse vers le compte les données locales absentes
     if (!pushedRef.current) {
       pushedRef.current = true;
       const local = getData();
@@ -76,12 +73,12 @@ export function ConvexSync() {
       }
       const cloudDates = new Set(cloud.bodyWeight.map((b) => b.date));
       for (const b of local.bodyWeight) {
-        if (!cloudDates.has(b.date)) addBodyMut({ userId, date: b.date, value: b.value }).catch(() => {});
+        if (!cloudDates.has(b.date)) addBodyMut({ date: b.date, value: b.value }).catch(() => {});
       }
       for (const [key, arr] of Object.entries(local.measurements)) {
         const seen = new Set((cloud.measurements[key] || []).map((m) => m.date));
         for (const m of arr) {
-          if (!seen.has(m.date)) addMeasureMut({ userId, key, date: m.date, value: m.value }).catch(() => {});
+          if (!seen.has(m.date)) addMeasureMut({ key, date: m.date, value: m.value }).catch(() => {});
         }
       }
     }

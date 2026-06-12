@@ -1,4 +1,5 @@
-/* FitForge — séances loggées + dernières charges (équiv. saveSession) */
+/* FitForge — séances loggées + dernières charges, rattachées au compte connecté */
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -18,20 +19,25 @@ const pr = v.object({
   next: v.number(),
 });
 
-/** Toutes les séances de l'utilisateur. */
+/** Toutes les séances du compte connecté. */
 export const list = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) =>
-    await ctx.db
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
+    return await ctx.db
       .query("sessions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect(),
+      .collect();
+  },
 });
 
 /** Dernière charge saisie par exercice, sous forme de Record<exId, kg>. */
 export const lastWeights = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return {};
     const rows = await ctx.db
       .query("lastWeights")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -45,7 +51,6 @@ export const lastWeights = query({
 /** Enregistre une séance (upsert par date) et met à jour les dernières charges. */
 export const save = mutation({
   args: {
-    userId: v.string(),
     iso: v.string(),
     dayId: v.string(),
     dayName: v.string(),
@@ -57,15 +62,18 @@ export const save = mutation({
     prs: v.array(pr),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Non authentifié");
+
     // upsert de la séance (clé métier : userId + iso)
     const existing = await ctx.db
       .query("sessions")
       .withIndex("by_user_iso", (q) =>
-        q.eq("userId", args.userId).eq("iso", args.iso),
+        q.eq("userId", userId).eq("iso", args.iso),
       )
       .unique();
     if (existing) await ctx.db.patch(existing._id, args);
-    else await ctx.db.insert("sessions", args);
+    else await ctx.db.insert("sessions", { userId, ...args });
 
     // met à jour la dernière charge saisie pour chaque exercice
     for (const ex of args.exercises) {
@@ -75,16 +83,12 @@ export const save = mutation({
       const lw = await ctx.db
         .query("lastWeights")
         .withIndex("by_user_ex", (q) =>
-          q.eq("userId", args.userId).eq("exId", ex.id),
+          q.eq("userId", userId).eq("exId", ex.id),
         )
         .unique();
       if (lw) await ctx.db.patch(lw._id, { weight: last });
       else
-        await ctx.db.insert("lastWeights", {
-          userId: args.userId,
-          exId: ex.id,
-          weight: last,
-        });
+        await ctx.db.insert("lastWeights", { userId, exId: ex.id, weight: last });
     }
   },
 });

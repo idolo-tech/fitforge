@@ -99,12 +99,23 @@ function TopNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   );
 }
 
-export default function FitForgeApp() {
+interface FitForgeAppProps {
+  /** mode authentifié (Convex Auth) : le profil vient du compte, pas du localStorage */
+  authMode?: boolean;
+  authProfile?: Profile | null;
+  onSaveProfile?: (p: Profile) => void | Promise<void>;
+  onSignOut?: () => void;
+}
+
+export default function FitForgeApp({ authMode = false, authProfile = null, onSaveProfile, onSignOut }: FitForgeAppProps = {}) {
   const [t, setTweak] = useTweaks(FF_TWEAK_DEFAULTS);
   const desktop = useIsDesktop();
 
-  const [profile, setProfile] = React.useState<Profile | null>(() => loadProfile());
-  const [phase, setPhase] = React.useState<'splash' | 'onboarding' | 'main'>(profile ? 'main' : 'splash');
+  const [profile, setProfile] = React.useState<Profile | null>(() => (authMode ? authProfile : loadProfile()));
+  // en mode auth, l'écran de connexion a déjà servi d'entrée → on saute le splash
+  const [phase, setPhase] = React.useState<'splash' | 'onboarding' | 'main'>(
+    () => ((authMode ? authProfile : loadProfile()) ? 'main' : authMode ? 'onboarding' : 'splash'),
+  );
   const [tab, setTab] = React.useState<Tab>('dashboard');
   const [workoutDay, setWorkoutDay] = React.useState<Day | null>(null);
   const [summary, setSummary] = React.useState<SessionSummary | null>(null);
@@ -120,7 +131,11 @@ export default function FitForgeApp() {
 
   const completeOnboarding = (p: OnboardingResult) => {
     const prof: Profile = { name: p.name, weight: p.weight, height: p.height, goal: p.goal };
-    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch { /* ignore */ }
+    if (authMode) {
+      void onSaveProfile?.(prof);              // persiste le profil sur le compte (Convex)
+    } else {
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch { /* ignore */ }
+    }
     seedBodyWeight(p.weight);
     setProfile(prof);
     setPhase('main');
@@ -146,7 +161,7 @@ export default function FitForgeApp() {
               {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'journal' && <JournalScreen desktop={desktop} />}
-              {tab === 'profile' && profile && <ProfileScreen profile={profile} desktop={desktop} onReplayOnboarding={replay} />}
+              {tab === 'profile' && profile && <ProfileScreen profile={profile} desktop={desktop} onReplayOnboarding={authMode ? undefined : replay} onSignOut={onSignOut} />}
             </div>
           )}
 
