@@ -5,7 +5,7 @@ export type IconName =
   | 'home' | 'program' | 'journal' | 'profile' | 'pause' | 'close' | 'check'
   | 'chevronR' | 'chevronL' | 'chevronD' | 'plus' | 'minus' | 'play' | 'flame'
   | 'timer' | 'share' | 'camera' | 'settings' | 'dumbbell' | 'arrowUp'
-  | 'arrowDown' | 'swap' | 'moon' | 'download';
+  | 'arrowDown' | 'swap' | 'moon' | 'download' | 'edit';
 
 interface FFIconProps {
   name: IconName;
@@ -41,6 +41,7 @@ export function FFIcon({ name, size = 22, color = 'currentColor', strokeWidth = 
     swap: <><path d="M7 4v12M7 4L4 7M7 4l3 3M17 20V8M17 20l3-3M17 20l-3-3" /></>,
     moon: <><path d="M19 14A8 8 0 1110 5a6.5 6.5 0 009 9z" /></>,
     download: <><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></>,
+    edit: <><path d="M4 20h4L18.5 9.5l-4-4L4 16v4z" /><path d="M13 7l4 4" /></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
