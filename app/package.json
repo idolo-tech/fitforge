@@ -12,11 +12,14 @@
     "convex": "convex dev"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.81",
     "@auth/core": "^0.41.1",
     "@convex-dev/auth": "^0.0.94",
+    "ai": "^6.0.202",
     "convex": "^1.41.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
