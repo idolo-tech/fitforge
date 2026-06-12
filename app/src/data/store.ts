@@ -60,12 +60,51 @@ export function useStore(): StoreData {
 }
 export const getData = (): StoreData => data;
 
+// ---------- pont Convex (optionnel) ----------
+// Le store reste synchrone (localStorage = cache instantané + offline).
+// Quand Convex est branché, les mutations écrivent aussi dans le cloud, et
+// les données du cloud sont fusionnées dans le store (le cloud gagne en cas
+// de conflit). Aucun composant ni sélecteur ne change.
+export interface CloudBackend {
+  saveSession: (s: LoggedSession) => Promise<unknown>;
+  addBodyWeight: (date: string, value: number) => Promise<unknown>;
+  addMeasurement: (key: string, date: string, value: number) => Promise<unknown>;
+}
+let backend: CloudBackend | null = null;
+export function setCloudBackend(b: CloudBackend | null): void { backend = b; }
+
+type Dated = { date: string; value: number };
+function mergeDated<T extends Dated>(local: T[], cloud: T[]): T[] {
+  const byDate = new Map<string, T>();
+  for (const e of local) byDate.set(e.date, e);
+  for (const e of cloud) byDate.set(e.date, e); // le cloud gagne
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Fusionne un instantané du cloud dans le store local (cloud prioritaire). */
+export function hydrateFromCloud(cloud: StoreData): void {
+  const measureKeys = new Set([...Object.keys(data.measurements), ...Object.keys(cloud.measurements)]);
+  const measurements: Record<string, MeasureEntry[]> = {};
+  for (const k of measureKeys) measurements[k] = mergeDated(data.measurements[k] || [], cloud.measurements[k] || []);
+
+  const merged: StoreData = {
+    sessions: { ...data.sessions, ...cloud.sessions },
+    bodyWeight: mergeDated(data.bodyWeight, cloud.bodyWeight),
+    measurements,
+    lastWeights: { ...data.lastWeights, ...cloud.lastWeights },
+  };
+  if (JSON.stringify(merged) === JSON.stringify(data)) return; // pas de notification inutile
+  data = merged;
+  persist();
+}
+
 // ---------- mutations ----------
 export function saveSession(s: LoggedSession): void {
   const lastWeights = { ...data.lastWeights };
   s.exercises.forEach((e) => e.sets.forEach((st) => { if (st.weight != null) lastWeights[e.id] = st.weight; }));
   data = { ...data, sessions: { ...data.sessions, [s.iso]: s }, lastWeights };
   persist();
+  backend?.saveSession(s).catch(() => { /* offline : resync au prochain chargement */ });
 }
 
 export function addBodyWeight(value: number): void {
@@ -74,6 +113,7 @@ export function addBodyWeight(value: number): void {
   bodyWeight.sort((a, b) => a.date.localeCompare(b.date));
   data = { ...data, bodyWeight };
   persist();
+  backend?.addBodyWeight(iso, value).catch(() => { /* offline */ });
 }
 
 export function addMeasurement(key: string, value: number): void {
@@ -82,6 +122,7 @@ export function addMeasurement(key: string, value: number): void {
   arr.sort((a, b) => a.date.localeCompare(b.date));
   data = { ...data, measurements: { ...data.measurements, [key]: arr } };
   persist();
+  backend?.addMeasurement(key, iso, value).catch(() => { /* offline */ });
 }
 
 /** seed initial body weight from onboarding (only if none yet) */

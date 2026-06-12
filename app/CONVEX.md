@@ -41,25 +41,29 @@ Chaque ligne est rattachée à un `userId` (string) → prêt pour le multi-appa
 et l'auth. En attendant l'auth, le client passe un identifiant d'appareil
 (ex. un `crypto.randomUUID()` stocké dans `localStorage`).
 
-## Migration depuis localStorage (étape suivante, optionnelle)
+## Synchronisation localStorage ↔ Convex (FAIT)
 
-`src/data/store.ts` reste la source de vérité pour l'instant. Pour basculer sur
-Convex, remplacer ses mutations/sélecteurs par les hooks Convex, par ex. :
+La bascule est implémentée via un **pont** plutôt qu'une réécriture des écrans :
 
-```tsx
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+- `src/data/userId.ts` — identifiant d'appareil stable (localStorage).
+- `src/data/ConvexSync.tsx` — monté sous `ConvexProvider` (dans `main.tsx`), ne
+  rend rien. Il :
+  1. branche les mutations Convex (`sessions.save`, `body.add`, `measurements.add`)
+     sur le store via `setCloudBackend()` ;
+  2. lit en temps réel (`useQuery`) sessions / poids / mensurations / dernières
+     charges et les **fusionne** dans le store (`hydrateFromCloud`, le cloud gagne
+     en cas de conflit) ;
+  3. au 1ᵉʳ chargement, **pousse vers le cloud les données locales absentes**
+     (aucune perte des données pré-Convex).
+- `src/data/store.ts` — inchangé côté API (`useStore()`, `getData()`, sélecteurs
+  identiques). Les mutations font une mise à jour **optimiste locale** + écriture
+  Convex en arrière-plan. **localStorage reste le cache offline.**
 
-const sessions = useQuery(api.sessions.list, { userId });      // réactif, temps réel
-const save     = useMutation(api.sessions.save);
-// await save({ userId, ...session })
-```
+Résultat : écriture instantanée, fonctionne hors-ligne, persisté + synchronisé
+multi-appareils dès que le réseau revient. Aucun écran n'a été modifié.
 
-À faire lors de la migration :
-- générer/stocker un `userId` d'appareil ;
-- remplacer `useStore()` par les `useQuery` correspondants (gérer l'état `undefined` = chargement) ;
-- les sélecteurs dérivés (`weeklyVolume`, `liftSeries`, `streak`, …) peuvent rester
-  côté client à partir des données renvoyées par `api.sessions.list`.
+> Prochaine étape possible : **Convex Auth** pour remplacer l'`userId` d'appareil
+> par un vrai compte (multi-utilisateur).
 
 ## Déploiement (Vercel)
 

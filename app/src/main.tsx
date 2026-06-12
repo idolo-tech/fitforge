@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import './styles/tokens.css';
 import FitForgeApp from './App';
+import { ConvexSync } from './data/ConvexSync';
 
 // Convex est optionnel : tant que VITE_CONVEX_URL n'est pas défini
 // (avant `npx convex dev`), l'app tourne en mode 100% localStorage.
@@ -13,6 +14,11 @@ const app = <FitForgeApp />;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {convex ? <ConvexProvider client={convex}>{app}</ConvexProvider> : app}
+    {convex ? (
+      <ConvexProvider client={convex}>
+        <ConvexSync />
+        {app}
+      </ConvexProvider>
+    ) : app}
   </StrictMode>,
 );
