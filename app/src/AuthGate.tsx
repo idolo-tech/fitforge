@@ -6,6 +6,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
 import FitForgeApp from './App';
 import { ConvexSync } from './data/ConvexSync';
+import { resetLocalStore } from './data/store';
 import { SignInScreen } from './screens/SignIn';
 import { ForgeLogo } from './screens/Onboarding';
 import type { Profile } from './screens/Profile';
@@ -36,7 +37,7 @@ function AuthedApp() {
         authMode
         authProfile={profile}
         onSaveProfile={async (p) => { await upsert({ name: p.name, weight: p.weight, height: p.height, goal: p.goal }); }}
-        onSignOut={() => void signOut()}
+        onSignOut={() => { void signOut().then(resetLocalStore); }}
       />
     </>
   );

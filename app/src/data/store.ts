@@ -73,6 +73,13 @@ export interface CloudBackend {
 let backend: CloudBackend | null = null;
 export function setCloudBackend(b: CloudBackend | null): void { backend = b; }
 
+/** Vide le cache local (à la déconnexion) pour qu'un autre compte reparte du cloud. */
+export function resetLocalStore(): void {
+  data = EMPTY;
+  try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+  listeners.forEach((l) => l());
+}
+
 type Dated = { date: string; value: number };
 function mergeDated<T extends Dated>(local: T[], cloud: T[]): T[] {
   const byDate = new Map<string, T>();
