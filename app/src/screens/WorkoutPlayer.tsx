@@ -25,6 +25,7 @@ interface LogEntry {
 function ValidateControl({ gesture, onValidate }: { gesture: string; onValidate: () => void }) {
   const [drag, setDrag] = React.useState(0);
   const startY = React.useRef<number | null>(null);
+  const dragRef = React.useRef(0); // valeur "live" du drag : lue dans end() sans dépendre d'une closure périmée
   const MAX = 90;
 
   if (gesture === 'Bouton') {
@@ -37,14 +38,19 @@ function ValidateControl({ gesture, onValidate }: { gesture: string; onValidate:
     );
   }
 
-  const begin = (y: number) => { startY.current = y; };
+  const begin = (y: number) => { startY.current = y; dragRef.current = 0; };
   const move = (y: number) => {
     if (startY.current == null) return;
-    setDrag(Math.max(0, Math.min(MAX, startY.current - y)));
+    const d = Math.max(0, Math.min(MAX, startY.current - y));
+    dragRef.current = d;
+    setDrag(d);
   };
   const end = () => {
-    if (drag >= MAX * 0.8) { setDrag(0); startY.current = null; onValidate(); }
-    else { setDrag(0); startY.current = null; }
+    const reached = dragRef.current >= MAX * 0.8;
+    dragRef.current = 0;
+    startY.current = null;
+    setDrag(0);
+    if (reached) onValidate();
   };
   const p = drag / MAX;
 
