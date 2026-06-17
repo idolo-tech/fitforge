@@ -6,7 +6,7 @@
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { v } from "convex/values";
@@ -125,5 +125,69 @@ export const adaptProgram = action({
     });
 
     return { adjustments: valid, alerts: object.alerts, summary: object.summary };
+  },
+});
+
+// ---------- coach conversationnel (chat, lecture seule) ----------
+export const chatCoach = action({
+  args: {
+    messages: v.array(
+      v.object({
+        role: v.union(v.literal("user"), v.literal("assistant")),
+        content: v.string(),
+      }),
+    ),
+    catalog: v.array(
+      v.object({ exId: v.string(), name: v.string(), muscle: v.string(), reps: v.string() }),
+    ),
+    schedule: v.optional(
+      v.object({
+        todayIso: v.string(),
+        currentWeek: v.number(),
+        plannedToDate: v.number(),
+        doneToDate: v.number(),
+        missedCount: v.number(),
+        missedRecent: v.array(v.object({ iso: v.string(), name: v.string() })),
+        daysSinceLast: v.union(v.number(), v.null()),
+      }),
+    ),
+  },
+  handler: async (ctx, { messages, catalog, schedule }): Promise<string> => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Non authentifié");
+
+    const sessions = await ctx.runQuery(api.sessions.list, {});
+    const lastWeights = await ctx.runQuery(api.sessions.lastWeights, {});
+    const notes = await ctx.runQuery(api.notes.list, {});
+    const plan = await ctx.runQuery(api.plan.list, {});
+
+    const exerciseLines = catalog
+      .map((e) => {
+        const last = lastWeights[e.exId];
+        const presc = plan.find((p) => p.exId === e.exId);
+        return `- ${e.name} (${e.muscle}, objectif ${e.reps}) : dernière ${last ?? "?"} kg${presc ? `, cible coach ${presc.targetWeight} kg` : ""}`;
+      })
+      .join("\n");
+
+    const recentNotes =
+      [...notes].sort((a, b) => a.iso.localeCompare(b.iso)).slice(-5).map((n) => `${n.iso}: ${n.text}`).join(" ; ") || "aucune";
+
+    const sched = schedule
+      ? `Semaine ${schedule.currentWeek}/12 · ${schedule.doneToDate}/${schedule.plannedToDate} séances faites · ${schedule.missedCount} manquée(s)` +
+        (schedule.daysSinceLast != null ? ` · dernière il y a ${schedule.daysSinceLast} j.` : ".")
+      : "";
+
+    const system =
+      "Tu es le coach IA de FitForge, une app de musculation (programme 12 semaines « Carrure + Définition », 4 séances/semaine). " +
+      "Réponds en français, de façon concise, concrète et bienveillante. Tu peux conseiller sur l'entraînement, la technique, la nutrition, la récupération, proposer des charges ou des alternatives d'exercices. " +
+      "Tu NE modifies PAS le programme toi-même (tu peux le recommander, l'utilisateur a un bouton « Adapter »). Reste dans le périmètre fitness/musculation ; si on te demande autre chose, recentre poliment.\n\n" +
+      `Contexte de l'utilisateur :\n- Séances loggées : ${sessions.length}. ${sched}\n- Exercices (charges) :\n${exerciseLines}\n- Notes récentes : ${recentNotes}`;
+
+    const { text } = await generateText({
+      model: google("gemini-3.5-flash"),
+      system,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
+    return text;
   },
 });

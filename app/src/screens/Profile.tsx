@@ -5,6 +5,7 @@ import { Segmented, Sparkline } from '../components/ui';
 import { ProgressPhotos } from './ProgressPhotos';
 import { CoachPanel } from './CoachPanel';
 import { useStore, addBodyWeight, addMeasurement, measurementViews } from '../data/store';
+import { remindersEnabled, setRemindersEnabled, enableReminders, notificationsSupported } from '../data/reminders';
 
 export interface Profile { name: string; weight: number; height: number; goal: string; }
 
@@ -53,7 +54,18 @@ export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, convexEn
   const [selZone, setSelZone] = React.useState('shoulders');
   const [units, setUnits] = React.useState('kg / cm');
   const [focusMode, setFocusMode] = React.useState(false);
-  const [notifs, setNotifs] = React.useState(true);
+  const [notifs, setNotifs] = React.useState(remindersEnabled());
+  const [notifHint, setNotifHint] = React.useState('');
+
+  const toggleReminders = async (on: boolean) => {
+    if (on) {
+      const ok = await enableReminders();
+      setNotifs(ok);
+      setNotifHint(ok ? '' : notificationsSupported() ? 'Autorise les notifications dans les réglages de ton navigateur pour activer les rappels.' : 'Notifications non supportées sur cet appareil.');
+    } else {
+      setRemindersEnabled(false); setNotifs(false); setNotifHint('');
+    }
+  };
 
   const measures = measurementViews(data);
   const zone = measures.find((m) => m.key === selZone)!;
@@ -155,7 +167,7 @@ export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, convexEn
       <section className="ff-card" style={{ margin: desktop ? '14px 0 0' : '14px 20px 0', padding: '6px 18px' }}>
         {[
           { label: 'Unités', control: <Segmented options={['kg / cm', 'lbs / in']} value={units} onChange={setUnits} style={{ width: 170 }} /> },
-          { label: 'Rappels (séance, protéines, sommeil)', control: <Toggle value={notifs} onChange={setNotifs} /> },
+          { label: 'Rappels de séance', control: <Toggle value={notifs} onChange={toggleReminders} /> },
           { label: 'Mode sans distraction', control: <Toggle value={focusMode} onChange={setFocusMode} /> },
         ].map((row) => (
           <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
@@ -163,6 +175,7 @@ export function ProfileScreen({ profile, onReplayOnboarding, onSignOut, convexEn
             {row.control}
           </div>
         ))}
+        {notifHint && <div style={{ fontSize: 11.5, color: 'var(--accent-2)', padding: '0 0 10px', lineHeight: 1.4 }}>{notifHint}</div>}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0' }}>
           <span style={{ fontSize: 13.5 }}>Exporter mes données</span>
           <div style={{ display: 'flex', gap: 6 }}>

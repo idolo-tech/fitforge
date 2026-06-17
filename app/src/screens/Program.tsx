@@ -3,7 +3,7 @@ import React from 'react';
 import { FFIcon } from '../components/icons';
 import { NeonButton, FFBadge } from '../components/ui';
 import * as FF from '../data/program';
-import { useStore, lastWeight, caughtUpDelay } from '../data/store';
+import { useStore, lastWeight, caughtUpDelay, setNote } from '../data/store';
 import type { Day } from '../data/types';
 
 function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; onStart: () => void }) {
@@ -13,7 +13,10 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
   const isToday = day.iso === FF.fmtISO(TODAY);
   const missed = !s && day.date < TODAY;
   const delay = s ? caughtUpDelay(day, s) : null;
-  const [note, setNote] = React.useState('');
+  const [noteDraft, setNoteDraft] = React.useState(data.notes[day.iso] || '');
+  // recharge le brouillon quand on change de jour (pas à chaque maj du store, pour ne pas écraser la saisie)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => { setNoteDraft(data.notes[day.iso] || ''); }, [day.iso]);
   return (
     <div className="anim-fade-in" style={{ position: 'absolute', inset: 0, zIndex: 35, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end' }} onClick={onClose}>
       <div className="anim-fade-up" onClick={(e) => e.stopPropagation()} style={{
@@ -58,7 +61,10 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
             </div>
           ))}
           <div style={{ fontSize: 12, color: 'var(--txt-2)', padding: '4px 2px' }} className="ff-mono">+ {day.cardio}</div>
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ajouter une note…"
+          <input value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)}
+            onBlur={() => setNote(day.iso, noteDraft)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            placeholder="Ajouter une note (ressenti, douleur…)"
             aria-label="Note de séance"
             style={{ background: 'transparent', border: '1px dashed var(--line)', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: 'var(--txt-0)', outline: 'none' }} />
         </div>

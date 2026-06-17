@@ -2,6 +2,7 @@
 import React from 'react';
 import { FFIcon } from '../components/icons';
 import { FFBadge, Segmented, ConsistencyHeatmap } from '../components/ui';
+import { ExerciseProgress } from '../components/ExerciseProgress';
 import * as FF from '../data/program';
 import { useStore, weeklyVolume, liftSeries, sessionList, setNote } from '../data/store';
 import type { WeekVol, LiftSerie } from '../data/store';
@@ -105,6 +106,7 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
   const [period, setPeriod] = React.useState('Mois');
   const [active, setActive] = React.useState<Set<string>>(new Set(['dev-incline', 'squat-guide']));
   const [expanded, setExpanded] = React.useState<string | null>(null);
+  const [progressEx, setProgressEx] = React.useState<{ id: string; name: string } | null>(null);
 
   const allVol = weeklyVolume(data);
   const series = liftSeries(data);
@@ -184,12 +186,17 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
                   {isExp && (
                     <div className="anim-fade-in" style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       {session.exercises.map((ex) => (
-                        <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                          <span style={{ fontSize: 12.5, color: 'var(--txt-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</span>
+                        <button key={ex.id} className="pressable" onClick={() => setProgressEx({ id: ex.id, name: ex.name })}
+                          aria-label={`Progression : ${ex.name}`}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, width: '100%', textAlign: 'left', padding: '3px 0' }}>
+                          <span style={{ fontSize: 12.5, color: 'var(--txt-1)', display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <FFIcon name="chart" size={12} color="var(--accent)" style={{ flexShrink: 0 }} />
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.name}</span>
+                          </span>
                           <span className="ff-mono" style={{ fontSize: 11.5, color: 'var(--txt-0)', flexShrink: 0 }}>
                             {ex.sets.map((st) => st.weight ? `${st.weight}×${st.reps}` : `${st.reps}`).slice(0, 4).join(' · ')}
                           </span>
-                        </div>
+                        </button>
                       ))}
                       {session.prs.length > 0 && (
                         <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -208,6 +215,7 @@ export function JournalScreen({ desktop = false }: { desktop?: boolean }) {
         )}
       </section>
      </div>
+      {progressEx && <ExerciseProgress exId={progressEx.id} name={progressEx.name} onClose={() => setProgressEx(null)} />}
     </div>
   );
 }
