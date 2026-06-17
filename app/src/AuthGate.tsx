@@ -6,7 +6,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
 import FitForgeApp from './App';
 import { ConvexSync } from './data/ConvexSync';
-import { resetLocalStore } from './data/store';
+import { resetLocalStore, getData, scheduleContext } from './data/store';
 import { WEIGHTED_EXERCISES } from './data/program';
 import { SignInScreen } from './screens/SignIn';
 import { ForgeLogo } from './screens/Onboarding';
@@ -40,7 +40,7 @@ function AuthedApp() {
         authProfile={profile}
         onSaveProfile={async (p) => { await upsert({ name: p.name, weight: p.weight, height: p.height, goal: p.goal }); }}
         onSignOut={() => { void signOut().then(resetLocalStore); }}
-        onSessionFinish={() => { void adapt({ catalog: WEIGHTED_EXERCISES }).catch(() => {}); }}
+        onSessionFinish={() => { void adapt({ catalog: WEIGHTED_EXERCISES, schedule: scheduleContext(getData()) }).catch(() => {}); }}
       />
     </>
   );

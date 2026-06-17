@@ -3,7 +3,7 @@ import React from 'react';
 import { FFIcon } from '../components/icons';
 import { NeonButton, FFBadge } from '../components/ui';
 import * as FF from '../data/program';
-import { useStore, lastWeight } from '../data/store';
+import { useStore, lastWeight, caughtUpDelay } from '../data/store';
 import type { Day } from '../data/types';
 
 function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; onStart: () => void }) {
@@ -11,6 +11,8 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
   const data = useStore();
   const s = data.sessions[day.iso];
   const isToday = day.iso === FF.fmtISO(TODAY);
+  const missed = !s && day.date < TODAY;
+  const delay = s ? caughtUpDelay(day, s) : null;
   const [note, setNote] = React.useState('');
   return (
     <div className="anim-fade-in" style={{ position: 'absolute', inset: 0, zIndex: 35, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end' }} onClick={onClose}>
@@ -22,10 +24,12 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
         <div style={{ padding: '16px 22px 10px' }}>
           <div className="ff-label" style={{ color: 'var(--accent)', textTransform: 'capitalize' }}>{FF.fmtLong(day.date)}</div>
           <h2 className="ff-display" style={{ fontSize: 23, fontWeight: 700, marginTop: 6 }}>{day.name}</h2>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <FFBadge>{day.location}</FFBadge>
             <FFBadge>{day.exercises.length} exercices</FFBadge>
             {s && <FFBadge color="var(--accent-3)" bg="rgba(57,255,20,0.1)"><FFIcon name="check" size={12} /> Complétée</FFBadge>}
+            {s && delay != null && <FFBadge color="var(--accent)" bg="rgba(0,240,255,0.08)">Rattrapée +{delay} j</FFBadge>}
+            {missed && <FFBadge color="var(--accent-2)" bg="rgba(255,61,113,0.1)"><FFIcon name="close" size={11} /> À rattraper</FFBadge>}
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 22px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -60,7 +64,7 @@ function DayDetail({ day, onClose, onStart }: { day: Day; onClose: () => void; o
         </div>
         {!s && (
           <div style={{ padding: '10px 22px calc(18px + env(safe-area-inset-bottom))' }}>
-            <NeonButton onClick={onStart}>{isToday ? 'DÉMARRER CETTE SÉANCE' : 'FAIRE CETTE SÉANCE'}</NeonButton>
+            <NeonButton onClick={onStart}>{isToday ? 'DÉMARRER CETTE SÉANCE' : missed ? 'RATTRAPER CETTE SÉANCE' : 'FAIRE CETTE SÉANCE'}</NeonButton>
           </div>
         )}
       </div>

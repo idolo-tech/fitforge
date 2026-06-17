@@ -6,6 +6,7 @@ import { api } from '../../convex/_generated/api';
 import { FFIcon } from '../components/icons';
 import { NeonButton } from '../components/ui';
 import { WEIGHTED_EXERCISES } from '../data/program';
+import { getData, scheduleContext } from '../data/store';
 
 const NAME: Record<string, string> = Object.fromEntries(WEIGHTED_EXERCISES.map((e) => [e.exId, e.name]));
 
@@ -28,7 +29,7 @@ export function CoachPanel({ desktop = false }: { desktop?: boolean }) {
     setLoading(true);
     setError(null);
     try {
-      await adapt({ catalog: WEIGHTED_EXERCISES });
+      await adapt({ catalog: WEIGHTED_EXERCISES, schedule: scheduleContext(getData()) });
     } catch {
       setError("L'adaptation a échoué (clé IA / quota / réseau). Réessaie.");
     } finally {

@@ -95,6 +95,7 @@ const DEFAULT_LOAD = 20; // charge de départ proposée si aucune saisie précé
 export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFinish, onQuit }: WorkoutPlayerProps) {
   const pane = desktop ? { width: '100%', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' } : undefined;
   const exercises = day.exercises;
+  const isCatchUp = day.iso < FF.fmtISO(FF.TODAY); // séance planifiée dans le passé → rattrapage
   // snapshot des charges/séances AVANT cette séance (pour PR + comparaison)
   const prevWeights = React.useRef<Record<string, number>>(getData().lastWeights);
   const prevSession = React.useRef<LoggedSession | undefined>(
@@ -281,6 +282,7 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
           </div>
           <h1 className="ff-display" style={{ fontSize: 27, fontWeight: 700, lineHeight: 1.1 }}>{ex.name}</h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {isCatchUp && <FFBadge color="var(--accent-2)" bg="rgba(255,61,113,0.12)">Rattrapage · {FF.fmtShort(day.date)}</FFBadge>}
             <FFBadge>{ex.muscle}</FFBadge>
             {presc && <FFBadge color="#000" bg="var(--accent)" style={{ fontWeight: 700 }}>Coach IA · {presc.targetWeight} kg</FFBadge>}
             <FFBadge>Objectif : {ex.reps} reps{isWeighted ? ' · charge libre' : ''}</FFBadge>
