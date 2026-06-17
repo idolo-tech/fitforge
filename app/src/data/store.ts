@@ -307,3 +307,34 @@ export function scheduleContext(d: StoreData): ScheduleContext {
     daysSinceLast: last ? daysBetween(new Date(last.finishedAt), TODAY) : null,
   };
 }
+
+// ---------- progression par exercice + 1RM estimé ----------
+
+/** 1RM estimé (formule d'Epley) à partir d'une série poids × reps. */
+export function estimate1RM(weight: number, reps: number): number {
+  if (weight <= 0 || reps <= 0) return 0;
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30) * 10) / 10;
+}
+
+export interface ExercisePoint { iso: string; week: number; topWeight: number; topReps: number; est1RM: number; }
+/** Historique chronologique d'un exercice : meilleure charge, meilleures reps et 1RM estimé par séance. */
+export function exerciseProgress(d: StoreData, exId: string): ExercisePoint[] {
+  const pts: ExercisePoint[] = [];
+  Object.values(d.sessions)
+    .sort((a, b) => a.iso.localeCompare(b.iso))
+    .forEach((s) => {
+      const ex = s.exercises.find((e) => e.id === exId);
+      if (!ex) return;
+      let topWeight = 0, topReps = 0, est = 0;
+      for (const st of ex.sets) {
+        if (st.weight != null) {
+          topWeight = Math.max(topWeight, st.weight);
+          est = Math.max(est, estimate1RM(st.weight, st.reps));
+        }
+        topReps = Math.max(topReps, st.reps);
+      }
+      pts.push({ iso: s.iso, week: isoToWeek[s.iso] || 1, topWeight, topReps, est1RM: est });
+    });
+  return pts;
+}
