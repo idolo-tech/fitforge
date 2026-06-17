@@ -114,7 +114,17 @@ const DAY_TEMPLATES: Record<number, DayTemplate> = {
     ],
     cardio: 'Marche lente 30 min · récupération active, pas de pression' },
 };
-const TRAINING_WEEKDAYS = [1, 3, 5, 0]; // lun, mer, ven, dim
+export const TRAINING_WEEKDAYS = [1, 3, 5, 0]; // lun, mer, ven, dim
+
+/** Prochaine date d'entraînement (≥ `from`) tombant un jour d'entraînement. */
+export function nextTrainingDate(from: Date): Date {
+  let d = startOfDay(from);
+  for (let i = 0; i < 8; i++) {
+    if (TRAINING_WEEKDAYS.includes(d.getDay())) return d;
+    d = addDays(d, 1);
+  }
+  return d;
+}
 
 // ---------- démos d'exercices : free-exercise-db (domaine public, CDN jsDelivr) ----------
 // Chaque exo du programme → identifiant du dataset. 2 images (début / fin du mouvement)

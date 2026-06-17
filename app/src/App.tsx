@@ -23,7 +23,6 @@ const AnalyseScreen = React.lazy(() => import('./screens/Analyse').then((m) => (
 const FF_TWEAK_DEFAULTS = {
   timerDesign: 'Ring',
   heroLayout: 'Immersif',
-  gesture: 'Swipe',
   glow: 100,
   speed: 100,
 };
@@ -182,7 +181,6 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
         {workoutDay && (
           <WorkoutPlayer
             day={workoutDay}
-            gesture={t.gesture}
             timerDesign={t.timerDesign}
             desktop={desktop}
             onQuit={() => setWorkoutDay(null)}

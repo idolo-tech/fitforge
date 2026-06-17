@@ -25,8 +25,20 @@ export const adaptProgram = action({
         reps: v.string(),
       }),
     ),
+    // contexte de planning (assiduité + séances manquées) — pour adapter la reprise
+    schedule: v.optional(
+      v.object({
+        todayIso: v.string(),
+        currentWeek: v.number(),
+        plannedToDate: v.number(),
+        doneToDate: v.number(),
+        missedCount: v.number(),
+        missedRecent: v.array(v.object({ iso: v.string(), name: v.string() })),
+        daysSinceLast: v.union(v.number(), v.null()),
+      }),
+    ),
   },
-  handler: async (ctx, { catalog }): Promise<CoachReport> => {
+  handler: async (ctx, { catalog, schedule }): Promise<CoachReport> => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Non authentifié");
 
@@ -61,6 +73,19 @@ export const adaptProgram = action({
         .map((n) => `${n.iso}: ${n.text}`)
         .join("\n") || "aucune note";
 
+    const scheduleLines = schedule
+      ? [
+          `Semaine ${schedule.currentWeek}/12 · date du jour ${schedule.todayIso}.`,
+          `Assiduité : ${schedule.doneToDate}/${schedule.plannedToDate} séances faites à ce jour.`,
+          schedule.missedCount > 0
+            ? `Séances manquées : ${schedule.missedCount}${schedule.missedRecent.length ? ` (récentes : ${schedule.missedRecent.map((m) => `${m.name} (${m.iso})`).join(", ")})` : ""}.`
+            : "Aucune séance manquée — bonne régularité.",
+          schedule.daysSinceLast != null
+            ? `Dernière séance il y a ${schedule.daysSinceLast} jour(s).`
+            : "Aucune séance enregistrée pour l'instant.",
+        ].join("\n")
+      : "Planning non fourni.";
+
     const schema = z.object({
       adjustments: z
         .array(
@@ -81,8 +106,8 @@ export const adaptProgram = action({
       model: google("gemini-3.5-flash"),
       schema,
       system:
-        "Tu es un coach de musculation expert et prudent. Tu ajustes UNIQUEMENT les poids cibles d'un programme existant (jamais la structure). Surcharge progressive : si l'utilisateur termine ses séries en RIR >= 2 plusieurs fois, augmente légèrement (2,5 kg sur les petits mouvements, 5 kg sur les gros). Si RIR 0-1 ou échec, ne monte pas (maintien ou légère baisse). Prends en compte les notes (douleurs, fatigue, sommeil) pour la sécurité : propose un maintien/deload en cas de surmenage. N'ajuste que les exercices avec assez d'historique. Utilise l'exId EXACT. Réponds en français.",
-      prompt: `Exercices (objectifs de reps + historique récent) :\n${exerciseLines}\n\nNotes de séance récentes :\n${noteLines}\n\nAnalyse et propose les ajustements de poids pour les prochaines séances.`,
+        "Tu es un coach de musculation expert et prudent. Tu ajustes UNIQUEMENT les poids cibles d'un programme existant (jamais la structure). Surcharge progressive : si l'utilisateur termine ses séries en RIR >= 2 plusieurs fois, augmente légèrement (2,5 kg sur les petits mouvements, 5 kg sur les gros). Si RIR 0-1 ou échec, ne monte pas (maintien ou légère baisse). Prends en compte les notes (douleurs, fatigue, sommeil) pour la sécurité : propose un maintien/deload en cas de surmenage. Tiens compte de l'assiduité : si l'utilisateur a manqué plusieurs séances ou repris après une coupure (dernière séance il y a >= 7 jours), NE POUSSE PAS les charges — propose un maintien ou un léger deload pour une reprise prudente, et explique cette reprise dans le résumé. Signale dans 'alerts' une perte de régularité si elle est marquée. N'ajuste que les exercices avec assez d'historique. Utilise l'exId EXACT. Réponds en français.",
+      prompt: `Exercices (objectifs de reps + historique récent) :\n${exerciseLines}\n\nNotes de séance récentes :\n${noteLines}\n\nPlanning / assiduité :\n${scheduleLines}\n\nAnalyse et propose les ajustements de poids pour les prochaines séances. Adapte la reprise au contexte d'assiduité ci-dessus et résume en 1-2 phrases (mentionne les séances manquées / la reprise si pertinent).`,
     });
 
     // écrit les ajustements valides dans le calque

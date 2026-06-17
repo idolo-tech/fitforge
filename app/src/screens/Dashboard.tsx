@@ -2,7 +2,7 @@
 import { FFIcon } from '../components/icons';
 import { NeonButton, FFBadge, Sparkline, ConsistencyHeatmap, ExercisePlaceholder } from '../components/ui';
 import * as FF from '../data/program';
-import { useStore, actionableDay, streak, weeklyVolume, completedCount } from '../data/store';
+import { useStore, actionableDay, streak, weeklyVolume, completedCount, missedDays, catchUpPlan } from '../data/store';
 import type { Day } from '../data/types';
 import type { StoreData } from '../data/store';
 
@@ -110,29 +110,73 @@ function HeroSeance({ layout, data, onStart, desktop = false }: { layout: string
   );
 }
 
+/* ---------- séances manquées à rattraper ---------- */
+function CatchUpCard({ data, onStart, desktop = false }: { data: StoreData; onStart: (d: Day) => void; desktop?: boolean }) {
+  const missed = missedDays(data);
+  if (missed.length === 0) return null;
+  const list = missed.slice(-3); // jusqu'à 3 manques récents (ordre chronologique)
+  const rest = missed.length - list.length;
+  const forecast = catchUpPlan(data).slice(0, 3); // calendrier réadapté (prochaines séances décalées)
+  return (
+    <section className="ff-card anim-fade-up" aria-label="Séances à rattraper"
+      style={{ margin: desktop ? 0 : '14px 20px 0', padding: 16, display: 'flex', flexDirection: 'column', gap: 12, borderColor: 'rgba(255,61,113,0.3)', boxShadow: '0 0 calc(16px * var(--glow)) rgba(255,61,113,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <FFIcon name="close" size={13} color="var(--accent-2)" strokeWidth={2.4} />
+        <span className="ff-label" style={{ color: 'var(--accent-2)' }}>{missed.length} séance{missed.length > 1 ? 's' : ''} à rattraper</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {list.map((d) => (
+          <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.short}</div>
+              <div className="ff-mono" style={{ fontSize: 11, color: 'var(--txt-2)', textTransform: 'capitalize' }}>{FF.fmtLong(d.date)} · {d.exercises.length} exos</div>
+            </div>
+            <button className="pressable ff-display" onClick={() => onStart(d)} aria-label={`Rattraper : ${d.name}`}
+              style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 10, background: 'rgba(255,61,113,0.1)', border: '1px solid rgba(255,61,113,0.35)', color: 'var(--accent-2)', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>
+              RATTRAPER
+            </button>
+          </div>
+        ))}
+      </div>
+      {rest > 0 && <span style={{ fontSize: 11, color: 'var(--txt-2)' }}>+ {rest} autre{rest > 1 ? 's' : ''} · onglet Programme</span>}
+
+      {forecast.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span className="ff-label" style={{ fontSize: 9.5, color: 'var(--accent)' }}>Planning réadapté</span>
+          {forecast.map((it, i) => (
+            <div key={it.day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, fontSize: 11.5 }}>
+              <span style={{ color: i === 0 ? 'var(--txt-0)' : 'var(--txt-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {i === 0 ? '→ ' : ''}{it.day.short}{it.missed ? ' ↺' : ''}
+              </span>
+              <span className="ff-mono" style={{ flexShrink: 0, textTransform: 'capitalize', color: i === 0 ? 'var(--accent)' : 'var(--txt-2)' }}>{FF.fmtLong(it.projectedDate)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 /* ---------- calendrier horizontal 7 jours (semaine courante) ---------- */
-function WeekCalendar({ data, desktop = false }: { data: StoreData; desktop?: boolean }) {
+function WeekCalendar({ data, onStart, desktop = false }: { data: StoreData; onStart?: (d: Day) => void; desktop?: boolean }) {
   const { TODAY, weeks, fmtISO, DAYS_FR_SHORT, currentWeek } = FF;
   const wk = weeks[Math.max(0, currentWeek - 1)];
   const days = Array.from({ length: 7 }, (_, i) => FF.addDays(wk.monday, i));
-  const trainISO = new Set(wk.days.map((d) => d.iso));
+  const dayByIso = new Map(wk.days.map((d) => [d.iso, d]));
   return (
     <div style={{ display: 'flex', gap: 8, padding: desktop ? 0 : '18px 20px 0', overflowX: 'auto', scrollSnapType: 'x mandatory' }} aria-label="Calendrier de la semaine">
       {days.map((d) => {
         const iso = fmtISO(d);
         const isToday = iso === fmtISO(TODAY);
         const done = !!data.sessions[iso];
-        const isTrain = trainISO.has(iso);
+        const trainDay = dayByIso.get(iso);
+        const isTrain = !!trainDay;
         const missed = isTrain && !done && d < TODAY;
-        return (
-          <div key={iso} style={{
-            flex: '1 0 56px', scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-            padding: '12px 4px', borderRadius: 14,
-            background: isToday ? 'var(--bg-2)' : 'transparent',
-            border: `1px solid ${isToday ? 'var(--accent)' : isTrain ? 'var(--line)' : 'transparent'}`,
-            boxShadow: isToday ? '0 0 calc(16px * var(--glow)) rgba(0,240,255,0.16)' : 'none',
-          }}>
-            <span className="ff-label" style={{ fontSize: 10, color: isToday ? 'var(--accent)' : 'var(--txt-2)' }}>{DAYS_FR_SHORT[d.getDay()]}</span>
+        // cliquable pour lancer/rattraper : jour d'entraînement non fait, aujourd'hui ou passé
+        const actionable = isTrain && !done && d <= TODAY && !!onStart;
+        const inner = (
+          <>
+            <span className="ff-label" style={{ fontSize: 10, color: isToday ? 'var(--accent)' : missed ? 'var(--accent-2)' : 'var(--txt-2)' }}>{DAYS_FR_SHORT[d.getDay()]}</span>
             <span className="ff-mono" style={{ fontSize: 16, fontWeight: 700, color: isToday ? 'var(--txt-0)' : 'var(--txt-1)' }}>{d.getDate()}</span>
             <span style={{ height: 14, display: 'flex', alignItems: 'center' }}>
               {done && <FFIcon name="check" size={13} color="var(--accent-3)" strokeWidth={2.4} />}
@@ -140,8 +184,18 @@ function WeekCalendar({ data, desktop = false }: { data: StoreData; desktop?: bo
               {isToday && !done && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}></span>}
               {!done && !missed && !isToday && isTrain && <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--txt-2)' }}></span>}
             </span>
-          </div>
+          </>
         );
+        const style = {
+          flex: '1 0 56px', scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 6,
+          padding: '12px 4px', borderRadius: 14, cursor: actionable ? 'pointer' : 'default',
+          background: isToday ? 'var(--bg-2)' : 'transparent',
+          border: `1px solid ${isToday ? 'var(--accent)' : missed ? 'rgba(255,61,113,0.3)' : isTrain ? 'var(--line)' : 'transparent'}`,
+          boxShadow: isToday ? '0 0 calc(16px * var(--glow)) rgba(0,240,255,0.16)' : 'none',
+        };
+        return actionable
+          ? <button key={iso} className="pressable" onClick={() => onStart!(trainDay!)} aria-label={`${missed ? 'Rattraper' : 'Démarrer'} : ${trainDay!.name}`} style={style}>{inner}</button>
+          : <div key={iso} style={style}>{inner}</div>;
       })}
     </div>
   );
@@ -245,11 +299,14 @@ export function DashboardScreen({ name, heroLayout, desktop = false, onStartWork
         <div className="ff-fluid ff-stagger" style={{ padding: '10px 32px 48px' }}>
           <DashHeader name={name} data={data} desktop />
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, marginTop: 16, alignItems: 'start' }}>
-            <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} desktop />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} desktop />
+              <CatchUpCard data={data} onStart={onStartWorkout} desktop />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               <div>
                 <div className="ff-label" style={{ marginBottom: 12 }}>Semaine en cours</div>
-                <WeekCalendar data={data} desktop />
+                <WeekCalendar data={data} onStart={onStartWorkout} desktop />
               </div>
               <WeekBars data={data} desktop />
             </div>
@@ -264,7 +321,8 @@ export function DashboardScreen({ name, heroLayout, desktop = false, onStartWork
     <div className="ff-stagger" style={{ height: '100%', overflowY: 'auto', paddingBottom: 110 }}>
       <DashHeader name={name} data={data} />
       <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} />
-      <WeekCalendar data={data} />
+      <CatchUpCard data={data} onStart={onStartWorkout} />
+      <WeekCalendar data={data} onStart={onStartWorkout} />
       <WeekBars data={data} />
       <ProgressCards data={data} />
     </div>

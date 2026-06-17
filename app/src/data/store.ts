@@ -6,6 +6,7 @@
 import { useSyncExternalStore } from 'react';
 import {
   TODAY, fmtISO, weeks, allDays, isoToWeek, KEY_LIFTS, MEASURE_DEFS, programStarted, firstSession,
+  addDays, daysBetween, currentWeek, nextTrainingDate,
 } from './program';
 import type { Day } from './types';
 
@@ -247,4 +248,62 @@ export function measurementViews(d: StoreData): MeasureView[] {
     const delta = values.length >= 2 ? +(values[values.length - 1] - values[0]).toFixed(1) : null;
     return { zone: m.zone, key: m.key, values, current, delta };
   });
+}
+
+// ---------- rattrapage des séances manquées + planning ajusté ----------
+
+/** Séances d'entraînement passées non complétées (manquées), de la + ancienne à la + récente. */
+export function missedDays(d: StoreData): Day[] {
+  if (!programStarted) return [];
+  return allDays
+    .filter((x) => x.date < TODAY && !d.sessions[x.iso])
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+export interface CatchUpItem { day: Day; projectedDate: Date; projectedIso: string; missed: boolean; }
+/** Replanifie les séances non faites (manquées + à venir) sur les prochains jours
+ *  d'entraînement à partir d'aujourd'hui. Projection pure : n'écrit rien dans le store. */
+export function catchUpPlan(d: StoreData): CatchUpItem[] {
+  const undone = allDays
+    .filter((x) => !d.sessions[x.iso])
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  let cursor = TODAY;
+  return undone.map((day) => {
+    const projectedDate = nextTrainingDate(cursor);
+    cursor = addDays(projectedDate, 1);
+    return { day, projectedDate, projectedIso: fmtISO(projectedDate), missed: day.date < TODAY };
+  });
+}
+
+/** Retard (en jours) avec lequel une séance a été rattrapée (faite après sa date planifiée), sinon null. */
+export function caughtUpDelay(day: Day, s: LoggedSession): number | null {
+  const delay = daysBetween(day.date, new Date(s.finishedAt));
+  return delay > 0 ? delay : null;
+}
+
+/** Contexte de planning transmis au Coach IA pour adapter charges + reprise. */
+export interface ScheduleContext {
+  todayIso: string;
+  currentWeek: number;
+  plannedToDate: number;
+  doneToDate: number;
+  missedCount: number;
+  missedRecent: { iso: string; name: string }[];
+  daysSinceLast: number | null;
+}
+export function scheduleContext(d: StoreData): ScheduleContext {
+  // assiduité à ce jour (strictement passé) → planned = done + manquées
+  const planned = allDays.filter((x) => x.date < TODAY).length;
+  const done = allDays.filter((x) => x.date < TODAY && d.sessions[x.iso]).length;
+  const missed = missedDays(d);
+  const last = Object.values(d.sessions).sort((a, b) => b.finishedAt.localeCompare(a.finishedAt))[0];
+  return {
+    todayIso: fmtISO(TODAY),
+    currentWeek,
+    plannedToDate: planned,
+    doneToDate: done,
+    missedCount: missed.length,
+    missedRecent: missed.slice(-5).map((x) => ({ iso: x.iso, name: x.short })),
+    daysSinceLast: last ? daysBetween(new Date(last.finishedAt), TODAY) : null,
+  };
 }
