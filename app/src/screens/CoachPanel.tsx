@@ -19,6 +19,79 @@ function ago(ts: number): string {
   return `il y a ${Math.floor(h / 24)} j`;
 }
 
+type ChatMsg = { role: 'user' | 'assistant'; content: string };
+
+function CoachChat() {
+  const chat = useAction(api.ai.chatCoach);
+  const [open, setOpen] = React.useState(false);
+  const [messages, setMessages] = React.useState<ChatMsg[]>([]);
+  const [input, setInput] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [messages, loading]);
+
+  async function send() {
+    const text = input.trim();
+    if (!text || loading) return;
+    const next: ChatMsg[] = [...messages, { role: 'user', content: text }];
+    setMessages(next);
+    setInput('');
+    setLoading(true);
+    try {
+      const reply = await chat({ messages: next, catalog: WEIGHTED_EXERCISES, schedule: scheduleContext(getData()) });
+      setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+    } catch {
+      setMessages((m) => [...m, { role: 'assistant', content: "Désolé, je n'ai pas pu répondre (IA / quota / réseau). Réessaie." }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button className="pressable ff-label" onClick={() => setOpen(true)}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(0,240,255,0.3)', background: 'rgba(0,240,255,0.05)', color: 'var(--accent)', fontSize: 12, alignSelf: 'flex-start' }}>
+        <FFIcon name="flame" size={13} /> Discuter avec le coach
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="ff-label">Discuter avec le coach</span>
+        <button className="pressable" onClick={() => setOpen(false)} aria-label="Fermer le chat" style={{ color: 'var(--txt-2)', fontSize: 13, width: 22, height: 22 }}>✕</button>
+      </div>
+      <div ref={scrollRef} style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {messages.length === 0 && (
+          <span style={{ fontSize: 12, color: 'var(--txt-2)', lineHeight: 1.5 }}>
+            Pose une question : « Comment progresser au développé incliné ? », « Par quoi remplacer les fentes ? », « Combien de protéines aujourd'hui ? »
+          </span>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', padding: '9px 12px', borderRadius: 12,
+            fontSize: 12.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+            background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-2)', color: m.role === 'user' ? '#000' : 'var(--txt-0)',
+            border: m.role === 'user' ? 'none' : '1px solid var(--line)',
+          }}>{m.content}</div>
+        ))}
+        {loading && <div style={{ alignSelf: 'flex-start', fontSize: 12, color: 'var(--txt-2)', padding: '2px' }}>Le coach réfléchit…</div>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
+          placeholder="Ta question…" aria-label="Message au coach"
+          style={{ flex: 1, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--txt-0)', outline: 'none' }} />
+        <button className="pressable" onClick={send} disabled={loading || !input.trim()} aria-label="Envoyer"
+          style={{ width: 44, borderRadius: 10, background: input.trim() && !loading ? 'var(--accent)' : 'var(--bg-2)', color: input.trim() && !loading ? '#000' : 'var(--txt-2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <FFIcon name="arrowUp" size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CoachPanel({ desktop = false }: { desktop?: boolean }) {
   const report = useQuery(api.coach.latestReport);
   const adapt = useAction(api.ai.adaptProgram);
@@ -96,6 +169,8 @@ export function CoachPanel({ desktop = false }: { desktop?: boolean }) {
           )}
         </div>
       )}
+
+      <CoachChat />
     </section>
   );
 }

@@ -13,7 +13,8 @@ import { ProfileScreen } from './screens/Profile';
 import type { Profile } from './screens/Profile';
 import { WorkoutPlayer } from './screens/WorkoutPlayer';
 import { SummaryScreen, ShareCard } from './screens/WorkoutExtras';
-import { seedBodyWeight } from './data/store';
+import { seedBodyWeight, getData } from './data/store';
+import { maybeNotifyTodaySession } from './data/reminders';
 import { user as DEFAULT_USER } from './data/program';
 import type { SessionSummary, Day } from './data/types';
 
@@ -133,6 +134,16 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
     document.documentElement.style.setProperty('--glow', String(t.glow / 100));
     document.documentElement.style.setProperty('--speed', String(100 / Math.max(25, t.speed)));
   }, [t.glow, t.speed]);
+
+  // rappel « séance du jour » (si activé) : à l'ouverture + au retour sur l'app
+  React.useEffect(() => {
+    if (phase !== 'main') return;
+    const fire = () => maybeNotifyTodaySession(getData());
+    const timer = setTimeout(fire, 4000); // laisse le temps à la synchro cloud
+    const onVis = () => { if (document.visibilityState === 'visible') fire(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
+  }, [phase]);
 
   const completeOnboarding = (p: OnboardingResult) => {
     const prof: Profile = { name: p.name, weight: p.weight, height: p.height, goal: p.goal };
