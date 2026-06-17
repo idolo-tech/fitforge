@@ -21,78 +21,27 @@ interface LogEntry {
   rir: number;
 }
 
-// ---------- bouton de validation : swipe-up ou classique ----------
-function ValidateControl({ gesture, onValidate }: { gesture: string; onValidate: () => void }) {
-  const [drag, setDrag] = React.useState(0);
-  const startY = React.useRef<number | null>(null);
-  const dragRef = React.useRef(0); // valeur "live" du drag : lue dans end() sans dépendre d'une closure périmée
-  const MAX = 90;
-
-  if (gesture === 'Bouton') {
-    return (
-      <NeonButton onClick={onValidate}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <FFIcon name="check" size={20} strokeWidth={2.6} /> VALIDER LA SÉRIE
-        </span>
-      </NeonButton>
-    );
-  }
-
-  const begin = (y: number) => { startY.current = y; dragRef.current = 0; };
-  const move = (y: number) => {
-    if (startY.current == null) return;
-    const d = Math.max(0, Math.min(MAX, startY.current - y));
-    dragRef.current = d;
-    setDrag(d);
-  };
-  const end = () => {
-    const reached = dragRef.current >= MAX * 0.8;
-    dragRef.current = 0;
-    startY.current = null;
-    setDrag(0);
-    if (reached) onValidate();
-  };
-  const p = drag / MAX;
-
+// ---------- bouton de validation de série ----------
+function ValidateControl({ onValidate }: { onValidate: () => void }) {
   return (
-    <div style={{ position: 'relative', height: 56 }}>
-      <div
-        role="button" tabIndex={0} aria-label="Glisser vers le haut pour valider la série"
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onValidate(); }}
-        onTouchStart={(e) => begin(e.touches[0].clientY)}
-        onTouchMove={(e) => move(e.touches[0].clientY)}
-        onTouchEnd={end}
-        onMouseDown={(e) => { begin(e.clientY); const mv = (ev: MouseEvent) => move(ev.clientY); const up = () => { end(); window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); }}
-        className="ff-display"
-        style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, borderRadius: 14,
-          transform: `translateY(${-drag}px)`,
-          background: p > 0.78 ? 'var(--accent-3)' : 'var(--accent)',
-          color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          fontSize: 16, fontWeight: 700, letterSpacing: '0.08em', cursor: 'grab', userSelect: 'none',
-          boxShadow: `0 0 calc(${20 + p * 26}px * var(--glow)) rgba(${p > 0.78 ? '57,255,20' : '0,240,255'},${0.25 + p * 0.4})`,
-          transition: startY.current == null ? 'transform var(--dur-med) cubic-bezier(0.22,1,0.36,1), background var(--dur-fast)' : 'background var(--dur-fast)',
-          touchAction: 'none',
-        }}>
-        <FFIcon name="arrowUp" size={18} strokeWidth={2.6} />
-        {p > 0.78 ? 'RELÂCHE !' : 'SWIPE POUR VALIDER'}
-      </div>
-      <div style={{ position: 'absolute', inset: 0, borderRadius: 14, border: '1px dashed var(--line)', opacity: p > 0 ? 0.7 : 0, transition: 'opacity var(--dur-fast)' }}></div>
-    </div>
+    <NeonButton onClick={onValidate}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+        <FFIcon name="check" size={20} strokeWidth={2.6} /> VALIDER LA SÉRIE
+      </span>
+    </NeonButton>
   );
 }
 
 // ---------- player principal ----------
 interface WorkoutPlayerProps {
   day: Day;
-  gesture: string;
   timerDesign: string;
   desktop?: boolean;
   onFinish: (s: SessionSummary) => void;
   onQuit: () => void;
 }
 const DEFAULT_LOAD = 20; // charge de départ proposée si aucune saisie précédente
-export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFinish, onQuit }: WorkoutPlayerProps) {
+export function WorkoutPlayer({ day, timerDesign, desktop = false, onFinish, onQuit }: WorkoutPlayerProps) {
   const pane = desktop ? { width: '100%', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' } : undefined;
   const exercises = day.exercises;
   const isCatchUp = day.iso < FF.fmtISO(FF.TODAY); // séance planifiée dans le passé → rattrapage
@@ -315,7 +264,7 @@ export function WorkoutPlayer({ day, gesture, timerDesign, desktop = false, onFi
         {sessionDone || (isLastExercise && isLastSetOfExercise) ? (
           <NeonButton color="var(--accent-3)" onClick={validate}>TERMINER LA SÉANCE</NeonButton>
         ) : (
-          <ValidateControl gesture={gesture} onValidate={validate} />
+          <ValidateControl onValidate={validate} />
         )}
       </div>
 
