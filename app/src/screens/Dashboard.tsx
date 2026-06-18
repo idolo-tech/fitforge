@@ -291,7 +291,24 @@ function ProgressCards({ data, desktop = false }: { data: StoreData; desktop?: b
   );
 }
 
-export function DashboardScreen({ name, heroLayout, desktop = false, onStartWorkout }: { name: string; heroLayout: string; desktop?: boolean; onStartWorkout: (d: Day) => void }) {
+/* ---------- entrée scanner de salle (vision IA, mode connecté) ---------- */
+function ScanCard({ onOpen, desktop = false }: { onOpen: () => void; desktop?: boolean }) {
+  return (
+    <button className="pressable ff-card" onClick={onOpen} aria-label="Scanner une machine"
+      style={{ margin: desktop ? 0 : '14px 20px 0', padding: 14, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', borderColor: 'rgba(0,240,255,0.25)', width: desktop ? '100%' : undefined }}>
+      <div style={{ width: 38, height: 38, borderRadius: 11, background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <FFIcon name="camera" size={18} color="var(--accent)" />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="ff-display" style={{ fontSize: 14.5, fontWeight: 700 }}>Scanner une machine</div>
+        <div style={{ fontSize: 11.5, color: 'var(--txt-1)' }}>Photo → tes exercices possibles, expliqués par l'IA</div>
+      </div>
+      <FFIcon name="chevronR" size={16} color="var(--txt-2)" />
+    </button>
+  );
+}
+
+export function DashboardScreen({ name, heroLayout, desktop = false, onStartWorkout, convexEnabled = false, onScan }: { name: string; heroLayout: string; desktop?: boolean; onStartWorkout: (d: Day) => void; convexEnabled?: boolean; onScan?: () => void }) {
   const data = useStore();
   if (desktop) {
     return (
@@ -302,6 +319,7 @@ export function DashboardScreen({ name, heroLayout, desktop = false, onStartWork
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} desktop />
               <CatchUpCard data={data} onStart={onStartWorkout} desktop />
+              {convexEnabled && onScan && <ScanCard onOpen={onScan} desktop />}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               <div>
@@ -322,6 +340,7 @@ export function DashboardScreen({ name, heroLayout, desktop = false, onStartWork
       <DashHeader name={name} data={data} />
       <HeroSeance layout={heroLayout} data={data} onStart={onStartWorkout} />
       <CatchUpCard data={data} onStart={onStartWorkout} />
+      {convexEnabled && onScan && <ScanCard onOpen={onScan} />}
       <WeekCalendar data={data} onStart={onStartWorkout} />
       <WeekBars data={data} />
       <ProgressCards data={data} />

@@ -191,3 +191,88 @@ export const chatCoach = action({
     return text;
   },
 });
+
+// ---------- vision : reconnaissance de machines de salle ----------
+interface ScanExercise { exId?: string; name: string; howTo: string; setsReps?: string; }
+interface ScanMachine { name: string; confidence: number; muscles: string[]; exercises: ScanExercise[]; }
+interface GymScanResult { id: string; summary: string; machines: ScanMachine[]; }
+
+export const analyzeGymPhoto = action({
+  args: {
+    storageId: v.id("_storage"),
+    catalog: v.array(
+      v.object({ exId: v.string(), name: v.string(), muscle: v.string(), reps: v.string() }),
+    ),
+  },
+  handler: async (ctx, { storageId, catalog }): Promise<GymScanResult> => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Non authentifié");
+
+    const blob = await ctx.storage.get(storageId);
+    if (!blob) throw new Error("Image introuvable");
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const mediaType = blob.type || "image/jpeg";
+
+    const catalogLines = catalog
+      .map((e) => `- exId="${e.exId}" "${e.name}" (${e.muscle}, ${e.reps} reps)`)
+      .join("\n");
+
+    const schema = z.object({
+      machines: z
+        .array(
+          z.object({
+            name: z.string().describe("nom de la machine / équipement, en français"),
+            confidence: z.number().describe("confiance d'identification entre 0 et 1"),
+            muscles: z.array(z.string()).describe("muscles principaux travaillés"),
+            exercises: z
+              .array(
+                z.object({
+                  exId: z.string().optional().describe("exId EXACT du programme si correspondance, sinon omettre"),
+                  name: z.string().describe("nom de l'exercice"),
+                  howTo: z.string().describe("comment utiliser la machine pour cet exercice, 1-2 phrases"),
+                  setsReps: z.string().optional().describe("séries × reps suggérées, ex: 3 × 12"),
+                }),
+              )
+              .describe("exercices réalisables sur cette machine"),
+          }),
+        )
+        .describe("machines de musculation visibles sur la photo (vide si rien de reconnaissable)"),
+      summary: z.string().describe("résumé en 1 phrase, en français"),
+    });
+
+    const { object } = await generateObject({
+      model: google("gemini-3.5-flash"),
+      schema,
+      system:
+        "Tu es un coach de musculation. On te montre une photo prise dans une salle de sport (une machine en gros plan, ou une vue large de plusieurs machines). " +
+        "Identifie les machines / équipements de musculation visibles. Pour chaque machine : nom en français, confiance honnête (0–1), muscles travaillés, et relie-la aux exercices du programme fourni — utilise l'exId EXACT quand un exercice du programme correspond, sinon propose un exercice générique SANS exId. " +
+        "Donne un 'howTo' court (1–2 phrases) et des séries × reps cohérentes. Ignore tout ce qui n'est pas de la musculation. Si rien n'est reconnaissable, renvoie machines: []. Réponds en français.",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: `Programme (exercices à charge) :\n${catalogLines}\n\nAnalyse la photo et relie les machines visibles à ces exercices.` },
+            { type: "image", image: bytes, mediaType },
+          ],
+        },
+      ],
+    });
+
+    // nettoie : ne garde que les exId valides, omet les champs vides (validateurs Convex)
+    const machines: ScanMachine[] = object.machines.map((m) => ({
+      name: m.name,
+      confidence: Number.isFinite(m.confidence) ? Math.max(0, Math.min(1, m.confidence)) : 0.5,
+      muscles: m.muscles ?? [],
+      exercises: (m.exercises ?? []).map((ex) => {
+        const exId = ex.exId && catalog.some((c) => c.exId === ex.exId) ? ex.exId : undefined;
+        const out: ScanExercise = { name: ex.name, howTo: ex.howTo };
+        if (exId) out.exId = exId;
+        if (ex.setsReps) out.setsReps = ex.setsReps;
+        return out;
+      }),
+    }));
+
+    const id = await ctx.runMutation(api.gym.saveScan, { storageId, summary: object.summary, machines });
+    return { id, summary: object.summary, machines };
+  },
+});

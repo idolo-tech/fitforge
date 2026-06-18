@@ -12,6 +12,7 @@ import { JournalScreen } from './screens/Journal';
 import { ProfileScreen } from './screens/Profile';
 import type { Profile } from './screens/Profile';
 import { WorkoutPlayer } from './screens/WorkoutPlayer';
+import { GymScanner } from './screens/GymScanner';
 import { SummaryScreen, ShareCard } from './screens/WorkoutExtras';
 import { seedBodyWeight, getData } from './data/store';
 import { maybeNotifyTodaySession } from './data/reminders';
@@ -126,6 +127,7 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
   const [workoutDay, setWorkoutDay] = React.useState<Day | null>(null);
   const [summary, setSummary] = React.useState<SessionSummary | null>(null);
   const [share, setShare] = React.useState(false);
+  const [scanOpen, setScanOpen] = React.useState(false);
 
   const name = profile?.name || DEFAULT_USER.name;
 
@@ -161,12 +163,12 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
     setProfile(null); setTab('dashboard'); setPhase('splash');
   };
 
-  const showBottomNav = phase === 'main' && !desktop && !workoutDay && !summary;
+  const showBottomNav = phase === 'main' && !desktop && !workoutDay && !summary && !scanOpen;
 
   return (
     <div className="ff-stage">
       <div className="ff-app">
-        {phase === 'main' && desktop && !workoutDay && !summary && <TopNav tab={tab} onChange={setTab} />}
+        {phase === 'main' && desktop && !workoutDay && !summary && !scanOpen && <TopNav tab={tab} onChange={setTab} />}
 
         <div className="ff-app-main">
           {phase === 'splash' && <SplashScreen onDone={() => setPhase('onboarding')} />}
@@ -174,7 +176,7 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
 
           {phase === 'main' && (
             <div key={tab} style={{ height: '100%' }} data-screen-label={tab}>
-              {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} />}
+              {tab === 'dashboard' && <DashboardScreen name={name} heroLayout={t.heroLayout} desktop={desktop} onStartWorkout={setWorkoutDay} convexEnabled={authMode} onScan={() => setScanOpen(true)} />}
               {tab === 'program' && <ProgramScreen desktop={desktop} onStartWorkout={setWorkoutDay} />}
               {tab === 'journal' && <JournalScreen desktop={desktop} />}
               {tab === 'analyse' && (
@@ -198,6 +200,8 @@ export default function FitForgeApp({ authMode = false, authProfile = null, onSa
             onFinish={(s) => { setWorkoutDay(null); setSummary(s); onSessionFinish?.(); }}
           />
         )}
+
+        {authMode && scanOpen && <GymScanner onClose={() => setScanOpen(false)} desktop={desktop} />}
 
         {summary && (
           <SummaryScreen session={summary} desktop={desktop} onShare={() => setShare(true)} onHome={() => { setSummary(null); setTab('dashboard'); }} />
