@@ -26,6 +26,21 @@ const pr = v.object({
   next: v.number(),
 });
 
+// machine détectée sur une photo de salle (cf. ai.analyzeGymPhoto)
+const scanMachine = v.object({
+  name: v.string(),
+  confidence: v.number(),               // 0..1
+  muscles: v.array(v.string()),
+  exercises: v.array(
+    v.object({
+      exId: v.optional(v.string()),     // exercice du programme si correspondance
+      name: v.string(),
+      howTo: v.string(),
+      setsReps: v.optional(v.string()),
+    }),
+  ),
+});
+
 export default defineSchema({
   // tables d'authentification (@convex-dev/auth) : users, authSessions, etc.
   ...authTables,
@@ -123,5 +138,15 @@ export default defineSchema({
     adjustments: v.array(
       v.object({ exId: v.string(), targetWeight: v.number(), reason: v.string() }),
     ),
+  }).index("by_user", ["userId"]),
+
+  // scans de salle : photo analysée par l'IA vision → machines + exercices liés.
+  // L'image est conservée (Convex File Storage) pour l'historique « ma salle ».
+  gymScans: defineTable({
+    userId: v.string(),
+    storageId: v.id("_storage"),
+    createdAt: v.string(),       // ISO datetime
+    summary: v.string(),
+    machines: v.array(scanMachine),
   }).index("by_user", ["userId"]),
 });
